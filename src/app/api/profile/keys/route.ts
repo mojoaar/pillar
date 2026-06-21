@@ -5,10 +5,11 @@ import crypto from 'crypto';
 import { writeAudit } from '@/lib/audit';
 
 function generateApiToken(): { raw: string; prefix: string; hash: string } {
-  const randomBytes = crypto.randomBytes(18).toString('hex'); // 36 hex chars
+  const randomBytes = crypto.randomBytes(32).toString('hex'); // 64 hex chars, 256-bit entropy
   const prefix = 'pil_live_' + randomBytes.substring(0, 8);
   const raw = prefix + randomBytes.substring(8);
-  const hash = crypto.createHash('sha256').update(raw).digest('hex');
+  const pepper = process.env.ENCRYPTION_KEY || 'pillar-pepper';
+  const hash = crypto.createHmac('sha256', pepper).update(raw).digest('hex');
   return { raw, prefix, hash };
 }
 

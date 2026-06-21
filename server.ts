@@ -26,15 +26,21 @@ function parseCookies(cookieHeader: string): Record<string, string> {
     const parts = cookie.split('=');
     const name = parts.shift()?.trim();
     if (name) {
-      list[name] = decodeURIComponent(parts.join('='));
+      try {
+        list[name] = decodeURIComponent(parts.join('='));
+      } catch {
+        // Skip malformed cookie values gracefully
+      }
     }
   });
   return list;
 }
 
-// Helper to construct Apache Guacamole protocol instruction strings (Finding #guac-handshake)
+// Helper to construct Apache Guacamole protocol instruction strings
+// Sanitizes args by stripping protocol delimiters (. , ;) to prevent injection
 function guacInstruction(opcode: string, ...args: string[]): string {
-  const list = [opcode, ...args];
+  const sanitize = (s: string) => s.replace(/[.;]/g, '');
+  const list = [sanitize(opcode), ...args.map(sanitize)];
   return list.map((a) => `${a.length}.${a}`).join(',') + ';';
 }
 
@@ -58,6 +64,19 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
   return true;
 }
 
+// Periodic cleanup: sweep expired rate-limiter entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, timestamps] of rateLimitBuckets) {
+    const recent = timestamps.filter((t) => t > now - 3600000); // 1 hour max window
+    if (recent.length === 0) {
+      rateLimitBuckets.delete(key);
+    } else {
+      rateLimitBuckets.set(key, recent);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
 // Express rate-limiting middleware creator
 function rateLimitMiddleware(maxRequests: number, windowMs: number) {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -75,7 +94,13 @@ function rateLimitMiddleware(maxRequests: number, windowMs: number) {
 
 app.prepare().then(() => {
   const expressApp = express();
+  expressApp.set('trust proxy', 1);
   const server = http.createServer(expressApp);
+
+  // Validate NEXTAUTH_SECRET at startup
+  if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
+    throw new Error('NEXTAUTH_SECRET must be at least 32 characters.');
+  }
 
   // ==========================================
   // HTTP SECURITY HEADERS MIDDLEWARE (Finding #3)
@@ -315,11 +340,13 @@ app.prepare().then(() => {
                 
                 session.disconnectTimeout = setTimeout(() => {
                   console.log(`[WS-SSH] Watchdog elapsed. Terminating persistent idle SSH session: ${sessionKey}`);
-                  if (session) {
+                  try {
                     if (session.shellStream) session.shellStream.end();
+                  } catch (e) {}
+                  try {
                     if (session.sshClient) session.sshClient.end();
-                    persistentSshSessions.delete(sessionKey);
-                  }
+                  } catch (e) {}
+                  persistentSshSessions.delete(sessionKey);
                 }, 5 * 60 * 1000); // Keep terminal alive on the server for 5 minutes!
               }
             }
@@ -459,8 +486,8 @@ app.prepare().then(() => {
               
               activeSess.disconnectTimeout = setTimeout(() => {
                 console.log(`[WS-SSH] Watchdog elapsed. Terminating persistent idle SSH session: ${sessionKey}`);
-                shellStream.end();
-                sshClient.end();
+                try { shellStream.end(); } catch (e) {}
+                try { sshClient.end(); } catch (e) {}
                 persistentSshSessions.delete(sessionKey);
               }, 5 * 60 * 1000);
             }
@@ -579,6 +606,7 @@ app.prepare().then(() => {
         host: connection.host,
         port: connection.port || 5900,
       });
+      tcpClient.setKeepAlive(true, 10000);
 
       // Pipe VNC TCP socket outputs directly to Browser Websocket
       tcpClient.on('data', (data) => {
@@ -722,11 +750,17 @@ app.prepare().then(() => {
         host: guacdHost,
         port: guacdPort,
       });
+      guacdClient.setKeepAlive(true, 10000);
 
+      // Determine per-connection cert verification: configurable via connection tags
+      const ignoreRdpCert = connection.tags?.includes('rdp-ignore-cert');
       const decryptedPassword = connection.password ? decrypt(connection.password) : '';
 
       // Initialize state variables for Guacamole Handshake Protocol negotiation
       let handshook = false;
+
+      // Determine per-connection cert verification: configurable via connection tags
+      const ignoreCert = connection.tags?.includes('rdp-ignore-cert') ? 'true' : 'false';
 
       guacdClient.on('connect', () => {
         // Send initial protocol select instruction
@@ -760,7 +794,7 @@ app.prepare().then(() => {
               if (argName === 'port') return (connection.port || 3389).toString();
               if (argName === 'username') return connection.username;
               if (argName === 'password') return decryptedPassword;
-              if (argName === 'ignore-cert') return 'true'; // crucial to prevent cert blocks on self-signed RDPs
+              if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
               if (argName === 'width') return '1024';
               if (argName === 'height') return '768';
               if (argName === 'dpi') return '96';

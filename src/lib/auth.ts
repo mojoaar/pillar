@@ -7,6 +7,9 @@ import { decrypt, encrypt } from './crypto';
 import { authenticator } from 'otplib';
 import { writeAudit } from './audit';
 
+// Set TOTP drift tolerance to ±1 time step (30s) for clock skew
+authenticator.options = { window: 1 };
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -40,7 +43,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         if (user.isSuspended) {
           // Log failed login attempt (suspended account)
           await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Account suspended' });
-          throw new Error('Account suspended. Contact administration.');
+          throw new Error('Invalid credentials');
         }
 
         // Validate password using bcryptjs
@@ -48,6 +51,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         if (!isValidPassword) {
           // Log failed login attempt (password mismatch)
           await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect password' });
+          throw new Error('Invalid credentials');
+        }
+
+        // Check if MFA is enforced but not yet enrolled
+        if (user.mfaEnforced && !user.mfaEnabled) {
+          await writeAudit(user.id, 'Login Failed', null, { email, reason: 'MFA enforced but not enrolled' });
           throw new Error('Invalid credentials');
         }
 
@@ -64,7 +73,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           if (isBackupCodeFormat) {
             if (!user.mfaBackupCodes) {
               await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Missing recovery codes' });
-              throw new Error('Invalid MFA or recovery code.');
+              throw new Error('Invalid credentials');
             }
 
             // Decrypt the stored backup recovery codes list
@@ -73,30 +82,34 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               decryptedBackupCodesStr = decrypt(user.mfaBackupCodes);
             } catch (err) {
               console.error('Failed to decrypt user backup codes:', err);
-              throw new Error('Decryption error');
+              throw new Error('Invalid credentials');
             }
 
             const backupCodesArray = decryptedBackupCodesStr.split(',');
             const matchedIndex = backupCodesArray.indexOf(totpCode);
 
             if (matchedIndex === -1) {
-              // Log failed login attempt (invalid recovery code)
               await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect recovery code' });
-              throw new Error('Invalid MFA or recovery code.');
+              throw new Error('Invalid credentials');
             }
 
             // Code matches! Remove the used single-use code from the array
             backupCodesArray.splice(matchedIndex, 1);
             
             // Re-encrypt and save remaining backup codes
-            const updatedBackupCodesStr = backupCodesArray.length > 0 
-              ? encrypt(backupCodesArray.join(',')) 
+            const updatedBackupCodesStr = backupCodesArray.length > 0
+              ? encrypt(backupCodesArray.join(','))
               : null;
 
-            await db.user.update({
-              where: { id: user.id },
+            // Atomic update with optimistic locking to prevent race conditions on single-use codes
+            const result = await db.user.updateMany({
+              where: { id: user.id, mfaBackupCodes: user.mfaBackupCodes },
               data: { mfaBackupCodes: updatedBackupCodesStr },
             });
+
+            if (result.count === 0) {
+              throw new Error('Invalid credentials');
+            }
 
             // Log the recovery code redemption event
             await writeAudit(
@@ -109,7 +122,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           } else {
             // Standard TOTP Verification
             if (!user.mfaSecret) {
-              throw new Error('MFA configuration error. Contact administration.');
+              throw new Error('Invalid credentials');
             }
 
             // Decrypt stored secret
@@ -118,15 +131,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
               decryptedSecret = decrypt(user.mfaSecret);
             } catch (err) {
               console.error('Failed to decrypt user mfa secret:', err);
-              throw new Error('Decryption error');
+              throw new Error('Invalid credentials');
             }
 
             // Validate TOTP code using otplib
             const isValidTotp = authenticator.check(totpCode, decryptedSecret);
             if (!isValidTotp) {
-              // Log failed login attempt (invalid TOTP code)
               await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect MFA code' });
-              throw new Error('Invalid MFA code');
+              throw new Error('Invalid credentials');
             }
           }
         }

@@ -34,6 +34,8 @@ export function connectSSH(options: SSHConnectOptions): Promise<Client> {
       port: options.port || 22,
       username: options.username,
       readyTimeout: 10000, // 10s connection handshaking limit
+      keepaliveInterval: 10000, // Send keepalive every 10s to prevent NAT/firewall timeouts
+      keepaliveCountMax: 3, // Disconnect after 3 consecutive missed keepalives (30s)
     };
 
     if (options.authType === 'PASSWORD') {

@@ -118,27 +118,27 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Remove unsafe-eval from CSP; add Strict-Transport-Security header
 
 #### 🟠 Tier 2 — HIGH Severity
-- [ ] Standardize all auth error messages to generic "Invalid credentials"
-- [ ] Add optimistic locking to backup code redemption
-- [ ] Add periodic sweep to clean expired rateLimitBuckets keys
-- [ ] Make ignore-cert a per-connection RDP setting
-- [ ] Add SSH keepalive + TCP keepalive to VNC/guacd sockets
-- [ ] Wrap watchdog cleanup in try/finally to guarantee session delete
-- [ ] Add try/catch around decodeURIComponent in parseCookies()
+- [x] Standardize all auth error messages to generic "Invalid credentials"
+- [x] Add optimistic locking to backup code redemption
+- [x] Add periodic sweep to clean expired rateLimitBuckets keys
+- [x] Make ignore-cert a per-connection RDP setting (via tags: `rdp-ignore-cert`)
+- [x] Add SSH keepalive + TCP keepalive to VNC/guacd sockets
+- [x] Wrap watchdog cleanup in try/finally to guarantee session delete
+- [x] Add try/catch around decodeURIComponent in parseCookies()
 
 #### 🟡 Tier 3 — MEDIUM Severity
-- [ ] Enforce hex-only ENCRYPTION_KEY; remove SHA-256 derivation fallback
-- [ ] Add HMAC-SHA256 with server pepper for API key hashing
+- [x] Enforce hex-only ENCRYPTION_KEY; remove SHA-256 derivation fallback
+- [x] Add HMAC-SHA256 with server pepper for API key hashing
 - [ ] Add tokenVersion to User model; increment on password change; check in JWT
-- [ ] Increase API key entropy to 256 bits
-- [ ] Add app.set('trust proxy', 1)
+- [x] Increase API key entropy to 256 bits
+- [x] Add app.set('trust proxy', 1)
 - [ ] Add per-user concurrent session cap
-- [ ] Sanitize Guacamole instruction args against protocol delimiters
-- [ ] Return generic errors in Proxmox API; log real errors server-side
-- [ ] Validate NEXTAUTH_SECRET length >= 32 at startup
-- [ ] Fix vmid=0 falsy check in Proxmox POST
-- [ ] Enforce mfaEnforced at login
-- [ ] Add maxLength validation to connection name/host/username
+- [x] Sanitize Guacamole instruction args against protocol delimiters
+- [x] Return generic errors in Proxmox API; log real errors server-side
+- [x] Validate NEXTAUTH_SECRET length >= 32 at startup
+- [x] Fix vmid=0 falsy check in Proxmox POST
+- [x] Enforce mfaEnforced at login
+- [x] Add maxLength validation to connection name/host/username
 
 #### 🟢 Tier 4 — LOW Severity
 - [ ] Replace NEXTAUTH_SECRET! non-null assertions with runtime guards

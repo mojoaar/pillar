@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
   } catch (err: any) {
     console.error('[API Plugins Proxmox GET] Failed:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { node, vmid, type, action } = body;
 
-    if (!node || !vmid || !type || !action) {
+    if (!node || vmid === undefined || vmid === null || !type || !action) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -134,6 +134,6 @@ export async function POST(request: NextRequest) {
 
   } catch (err: any) {
     console.error('[API Plugins Proxmox POST] Failed:', err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

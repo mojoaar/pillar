@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    if (name.length > 255 || host.length > 255 || username.length > 128) {
+      return NextResponse.json({ error: 'Field length exceeds maximum allowed characters.' }, { status: 400 });
+    }
+
     // Sanitize incoming tags: convert to clean comma-separated list of lower-case unique values (Finding #tags)
     let sanitizedTags: string | null = null;
     if (tags) {

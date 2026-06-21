@@ -16,7 +16,8 @@ export async function authenticateRequest(request: Request) {
   const authHeader = request.headers.get('Authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const rawToken = authHeader.substring(7).trim();
-    const hashed = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const pepper = process.env.ENCRYPTION_KEY || 'pillar-pepper';
+    const hashed = crypto.createHmac('sha256', pepper).update(rawToken).digest('hex');
 
     const apiKeyRecord = await db.apiKey.findFirst({
       where: { keyHash: hashed },
