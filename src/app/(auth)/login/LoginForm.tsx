@@ -40,7 +40,8 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+      const rawCallback = searchParams.get('callbackUrl') || '/dashboard';
+      const callbackUrl = rawCallback.startsWith('/') ? rawCallback : '/dashboard';
       
       const res = await signIn('credentials', {
         email,

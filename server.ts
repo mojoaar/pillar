@@ -81,15 +81,16 @@ app.prepare().then(() => {
   // HTTP SECURITY HEADERS MIDDLEWARE (Finding #3)
   // ==========================================
   expressApp.use((req, res, next) => {
-    res.setHeader('X-Frame-Options', 'DENY'); // Prevent Framing Clickjacking
-    res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME Sniffing
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     
     // Only apply strict Content Security Policy in production to prevent blocking
     // Next.js hot module reloading (HMR) and dev assets in development mode (Finding #csp-dev)
     if (process.env.NODE_ENV === 'production') {
       const csp = "default-src 'self'; " +
-                  "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                  "script-src 'self' 'unsafe-inline'; " +
                   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                   "font-src 'self' https://fonts.gstatic.com; " +
                   "img-src 'self' data: blob:; " +
@@ -991,11 +992,42 @@ app.prepare().then(() => {
     }
   });
 
-  // Intercept HTTP server 'upgrade' requests to authorize and route to correct WebSocket Server
+  // Intercept HTTP server 'upgrade' requests — validate Origin and session cookie BEFORE upgrading
   server.on('upgrade', (request, socket, head) => {
-    const { pathname } = parse(request.url || '', true);
+    const { pathname, query: upgradeQuery } = parse(request.url || '', true);
+
+    // Validate Origin header to prevent Cross-Site WebSocket Hijacking (CSWSH)
+    const origin = request.headers.origin;
+    if (origin) {
+      const allowedHosts = [
+        request.headers.host || '',
+        process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : '',
+      ].filter(Boolean);
+      const originHost = new URL(origin).host;
+      if (!allowedHosts.includes(originHost)) {
+        console.warn(`[WS Upgrade] Rejected cross-origin WebSocket upgrade from: ${origin}`);
+        socket.destroy();
+        return;
+      }
+    }
+
+    // Validate session cookie before performing the WebSocket upgrade
+    const cookies = parseCookies(request.headers.cookie || '');
+    const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
+    const sessionToken = cookies[cookieName];
+
+    if (!sessionToken) {
+      console.warn(`[WS Upgrade] Rejected unauthenticated WebSocket upgrade to: ${pathname}`);
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
 
     if (pathname === '/api/ws/terminal') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else if (pathname === '/api/ws/vnc') {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });

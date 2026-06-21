@@ -6,21 +6,15 @@ const ALGORITHM = 'aes-256-gcm';
 function getEncryptionKey(): Buffer {
   const key = process.env.ENCRYPTION_KEY;
   if (!key) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('ENCRYPTION_KEY is required in production environments.');
-    }
-    // Fallback for development/test only, warning output to console
-    console.warn('⚠️ Warning: ENCRYPTION_KEY is not defined. Using a development-only fallback key.');
-    return crypto.createHash('sha256').update('dev-fallback-key-unsafe').digest();
+    throw new Error('ENCRYPTION_KEY environment variable is required.');
   }
 
-  // If key is a 64-character hex string, parse it as hex
-  if (/^[0-9a-fA-F]{64}$/.test(key)) {
-    return Buffer.from(key, 'hex');
+  // Must be a 64-character hex string for proper 32-byte key material
+  if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+    throw new Error('ENCRYPTION_KEY must be a 64-character hex string.');
   }
 
-  // Otherwise, hash the key string to guarantee a 32-byte buffer
-  return crypto.createHash('sha256').update(key).digest();
+  return Buffer.from(key, 'hex');
 }
 
 /**

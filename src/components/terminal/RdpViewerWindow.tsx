@@ -16,6 +16,8 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
     // 1. Dynamically load guacamole-common-js on-demand from CDN (Gotcha #42 compliance)
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/guacamole-common-js@1.5.0/all.min.js';
+    script.integrity = 'sha384-jtSh9BnxSuwgItF/LUnf9eBlozAxZ5Z0iSZqQxHvNJXZSIaYQgB2ESVeU9MwWpjM';
+    script.crossOrigin = 'anonymous';
     script.async = true;
     
     script.onload = () => {

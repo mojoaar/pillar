@@ -104,3 +104,50 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [ ] List saved connection profiles from the gateway
 - [ ] Launch interactive SSH sessions through Pillar's WebSocket tunnel
 - [ ] Terminal raw mode, resize signals, and PTY pipe management
+
+---
+
+## Security Remediation Backlog
+
+#### ⚡ Tier 1 — Immediate Priority (CRITICAL)
+- [x] Remove hardcoded ENCRYPTION_KEY from test-ssh.ts; throw on missing key in all environments
+- [x] Validate callbackUrl is relative path in LoginForm.tsx
+- [x] Add Origin header validation to all 4 WebSocket handlers
+- [x] Move JWT cookie validation BEFORE wss.handleUpgrade() in upgrade interceptor
+- [x] Add SRI integrity hashes to CDN scripts (RdpViewerWindow, PveVncViewerWindow)
+- [x] Remove unsafe-eval from CSP; add Strict-Transport-Security header
+
+#### 🟠 Tier 2 — HIGH Severity
+- [ ] Standardize all auth error messages to generic "Invalid credentials"
+- [ ] Add optimistic locking to backup code redemption
+- [ ] Add periodic sweep to clean expired rateLimitBuckets keys
+- [ ] Make ignore-cert a per-connection RDP setting
+- [ ] Add SSH keepalive + TCP keepalive to VNC/guacd sockets
+- [ ] Wrap watchdog cleanup in try/finally to guarantee session delete
+- [ ] Add try/catch around decodeURIComponent in parseCookies()
+
+#### 🟡 Tier 3 — MEDIUM Severity
+- [ ] Enforce hex-only ENCRYPTION_KEY; remove SHA-256 derivation fallback
+- [ ] Add HMAC-SHA256 with server pepper for API key hashing
+- [ ] Add tokenVersion to User model; increment on password change; check in JWT
+- [ ] Increase API key entropy to 256 bits
+- [ ] Add app.set('trust proxy', 1)
+- [ ] Add per-user concurrent session cap
+- [ ] Sanitize Guacamole instruction args against protocol delimiters
+- [ ] Return generic errors in Proxmox API; log real errors server-side
+- [ ] Validate NEXTAUTH_SECRET length >= 32 at startup
+- [ ] Fix vmid=0 falsy check in Proxmox POST
+- [ ] Enforce mfaEnforced at login
+- [ ] Add maxLength validation to connection name/host/username
+
+#### 🟢 Tier 4 — LOW Severity
+- [ ] Replace NEXTAUTH_SECRET! non-null assertions with runtime guards
+- [ ] Add rate limiting on credential attempts
+- [ ] Explicitly set TOTP window: 1
+- [ ] Throw on null/undefined input to encrypt()/decrypt()
+- [ ] Log only err.message in production
+- [ ] Clamp audit log pagination limit to max 100
+- [ ] Move globalThis helpers to module exports
+- [ ] Add TCP port range validation (1-65535)
+- [ ] Set explicit TOTP window/tolerance
+- [ ] Add Permissions-Policy + Cross-Origin-Resource-Policy headers

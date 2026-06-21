@@ -2,7 +2,7 @@ import { encrypt, decrypt, maskSecret } from './src/lib/crypto';
 import { connectSSH } from './src/lib/ssh';
 
 // Configure environment variable fallbacks for the test execution
-process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'f1910cf200d720b001a1c97a229a1e053123bc4cc649be1ca495991b7852b856';
+process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '0000000000000000000000000000000000000000000000000000000000000000';
 
 async function runTests() {
   console.log('\n==================================================');

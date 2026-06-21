@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import RFB from '@novnc/novnc';
 
 interface PveVncViewerWindowProps {
   node: string;
@@ -15,65 +16,41 @@ export default function PveVncViewerWindow({ node, vmid, type }: PveVncViewerWin
   const rfbRef = useRef<any>(null);
 
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@novnc/novnc@1.7.0/lib/rfb.js';
-    script.async = true;
+    if (!containerRef.current) return;
 
-    script.onload = () => {
-      if (!containerRef.current) return;
+    setStatus('Connecting to Proxmox hypervisor...');
 
-      const RFB = (window as any).RFB;
-      if (!RFB) {
-        setError('Failed to resolve noVNC viewer engine.');
-        return;
-      }
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/ws/proxmox-vnc?node=${encodeURIComponent(node)}&vmid=${vmid}&type=${type}`;
+      
+      const rfb = new RFB(containerRef.current, wsUrl, {
+        credentials: {},
+        wsProtocols: ['binary'],
+        shared: true,
+      });
 
-      setStatus('Connecting to Proxmox hypervisor...');
+      rfbRef.current = rfb;
 
-      try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/ws/proxmox-vnc?node=${encodeURIComponent(node)}&vmid=${vmid}&type=${type}`;
-        
-        const rfb = new RFB(containerRef.current, wsUrl, {
-          credentials: {},
-          wsProtocols: ['binary'],
-          shared: true,
-        });
+      rfb.addEventListener('connect', () => { setStatus('Connected'); });
+      rfb.addEventListener('disconnect', (e: any) => {
+        setStatus('Disconnected');
+        if (e.detail?.clean) {
+          setError(null);
+        } else {
+          setError('Connection to Proxmox VM console dropped.');
+        }
+      });
+      rfb.addEventListener('credentialsrequired', () => {});
 
-        rfbRef.current = rfb;
-
-        rfb.addEventListener('connect', () => { setStatus('Connected'); });
-        rfb.addEventListener('disconnect', (e: any) => {
-          setStatus('Disconnected');
-          if (e.detail?.clean) {
-            setError(null);
-          } else {
-            setError('Connection to Proxmox VM console dropped.');
-          }
-        });
-        rfb.addEventListener('credentialsrequired', () => {});
-
-        rfb.viewportDrag = true;
-        rfb.resizeSession = true;
-        rfb.scaleViewport = true;
-        rfb.clipViewport = true;
-
-      } catch (err: any) {
-        setError(`Failed to launch console: ${err.message}`);
-      }
-    };
-
-    script.onerror = () => {
-      setError('Failed to fetch noVNC engine from CDN.');
-    };
-
-    document.body.appendChild(script);
+    } catch (err: any) {
+      setError(`Failed to launch console: ${err.message}`);
+    }
 
     return () => {
       if (rfbRef.current) {
         try { rfbRef.current.disconnect(); } catch (e) {}
       }
-      document.body.removeChild(script);
     };
   }, [node, vmid, type]);
 
@@ -125,7 +102,7 @@ export default function PveVncViewerWindow({ node, vmid, type }: PveVncViewerWin
         }}
       >
         <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontFamily: 'var(--terminal-font)' }}>
-          Loading noVNC display canvas...
+          Initializing noVNC display canvas...
         </span>
       </div>
     </div>
