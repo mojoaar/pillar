@@ -851,7 +851,7 @@ app.prepare().then(() => {
               if (argName === 'username') return connection.username;
               if (argName === 'password') return decryptedPassword;
               if (argName === 'domain') return connection.domain || '';
-              if (argName === 'security') return 'any';
+              if (argName === 'security') return 'nla';
               if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
               if (argName === 'width') return '1024';
               if (argName === 'height') return '768';
