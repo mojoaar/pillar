@@ -69,13 +69,46 @@
   margin: 1rem 0;
 }
 
-.userSection {
-  padding: 1.5rem 1rem;
+.sidebarFooter {
   border-top: 1px solid var(--border);
+  background-color: var(--bg-tertiary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.userSection {
+  padding: 1.15rem 1rem;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background-color: var(--bg-tertiary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-speed) ease;
+}
+
+.userSection:hover {
+  background-color: var(--bg-secondary);
+}
+
+.userSection:hover .userName {
+  color: var(--accent);
+}
+
+.signOutLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  color: var(--danger);
+  text-decoration: none;
+  font-weight: 500;
+  border-top: 1px solid var(--border);
+  transition: all var(--transition-speed) ease;
+}
+
+.signOutLink:hover {
+  background-color: rgba(255, 85, 85, 0.05);
 }
 
 .avatar {
@@ -126,10 +159,10 @@
   .sidebar {
     width: 70px;
   }
-  .logoTitle, .userName, .userRole, .navText {
+  .logoTitle, .userName, .userRole, .navText, .signOutText {
     display: none;
   }
-  .logoSection, .userSection {
+  .logoSection, .userSection, .signOutLink {
     justify-content: center;
     padding: 1rem;
   }

@@ -10,8 +10,7 @@ import {
   BookOpen, 
   Code, 
   ShieldAlert, 
-  LogOut,
-  ChevronRight
+  LogOut
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import styles from './Sidebar.module.css';
@@ -105,12 +104,12 @@ export default function Sidebar({ user }: SidebarProps) {
           <span className={styles.navText}>API Reference</span>
         </Link>
 
-        {/* Separator block */}
-        <div className={styles.separator} />
-
         {/* Dedicated Admin Console (ADMIN-role only) */}
         {user.role === 'ADMIN' && (
           <>
+            {/* Separator block */}
+            <div className={styles.separator} />
+            
             <span style={{ 
               fontSize: '0.75rem', 
               fontWeight: 700, 
@@ -132,30 +131,31 @@ export default function Sidebar({ user }: SidebarProps) {
             </Link>
           </>
         )}
-
-        {/* Separator block */}
-        <div className={styles.separator} />
-
-        <a 
-          href="/logout" 
-          className={styles.navItem} 
-          onClick={handleLogout}
-          style={{ color: 'var(--danger)', marginTop: 'auto' }}
-        >
-          <LogOut size={20} />
-          <span className={styles.navText}>Sign Out</span>
-        </a>
       </nav>
 
-      {/* User display badge */}
-      <div className={styles.userSection}>
-        <div className={styles.avatar}>
-          {getInitials(user.name)}
-        </div>
-        <div className={styles.userInfo}>
-          <span className={styles.userName}>{user.name}</span>
-          <span className={styles.userRole}>{user.role}</span>
-        </div>
+      {/* Sidebar Footer Wrapper (Finding #nav-reorder) */}
+      <div className={styles.sidebarFooter}>
+        {/* Clickable User profile card section */}
+        <Link href="/settings" className={styles.userSection} title="Navigate to Profile Settings">
+          <div className={styles.avatar}>
+            {getInitials(user.name)}
+          </div>
+          <div className={styles.userInfo}>
+            <span className={styles.userName}>{user.name}</span>
+            <span className={styles.userRole}>{user.role}</span>
+          </div>
+        </Link>
+
+        {/* Sign Out link positioned cleanly at the absolute bottom */}
+        <a 
+          href="/logout" 
+          className={styles.signOutLink} 
+          onClick={handleLogout}
+          title="Sign Out of Gateway Session"
+        >
+          <LogOut size={20} />
+          <span className={styles.signOutText}>Sign Out</span>
+        </a>
       </div>
     </aside>
   );
