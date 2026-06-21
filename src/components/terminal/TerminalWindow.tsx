@@ -223,6 +223,7 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
 
     // 7. Cleanup pipelines and sockets on unmount
     return () => {
+      isSocketClosed.current = true; // Mark as closed BEFORE closing the socket to prevent misleading console errors
       resizeObserver.disconnect();
       if (containerRef.current) {
         containerRef.current.removeEventListener('paste', handlePasteEvent);
