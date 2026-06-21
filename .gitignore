@@ -1,0 +1,105 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+prisma/migrations/dev/
+
+# Uploads (user-generated content — mount as volume)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Turbopack / build cache
+.turbo/
+.swc/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+pids/
+
+# macOS
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+.vim/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Keys & secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tgz
+.yarn-integrity
+.node_repl_history
