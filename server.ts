@@ -52,9 +52,9 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 // Helper to construct Apache Guacamole protocol instruction strings
-// Sanitizes args by stripping protocol delimiters (. , ;) to prevent injection
+// Sanitizes args by stripping protocol delimiters to prevent injection
 function guacInstruction(opcode: string, ...args: string[]): string {
-  const sanitize = (s: string) => s.replace(/[.;]/g, '');
+  const sanitize = (s: string) => s.replace(/[;]/g, '');
   const list = [sanitize(opcode), ...args.map(sanitize)];
   return list.map((a) => `${a.length}.${a}`).join(',') + ';';
 }
