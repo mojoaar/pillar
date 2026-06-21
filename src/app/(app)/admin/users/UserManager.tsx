@@ -12,6 +12,7 @@ interface UserModel {
   role: string;
   mfaEnabled: boolean;
   isSuspended: boolean;
+  allowedPlugins?: string | null; // comma-separated plugin IDs authorized for this user
   createdAt: string;
 }
 
@@ -30,6 +31,11 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('USER');
+
+  // Manage Plugins Modal State
+  const [showPluginsModal, setShowPluginsModal] = useState(false);
+  const [pluginTargetUser, setPluginTargetUser] = useState<UserModel | null>(null);
+  const [selectedPlugins, setSelectedPlugins] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -168,6 +174,41 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
     }
   };
 
+  // Open Manage Plugins modal for user
+  const handleOpenPluginsModal = (user: UserModel) => {
+    setPluginTargetUser(user);
+    const userPlugins = user.allowedPlugins ? user.allowedPlugins.split(',').map(p => p.trim()) : [];
+    setSelectedPlugins(userPlugins);
+    setShowPluginsModal(true);
+  };
+
+  // Save authorized plugins list for user
+  const handleSavePlugins = async () => {
+    if (!pluginTargetUser) return;
+    setLoading(true);
+
+    try {
+      const allowedStr = selectedPlugins.join(',');
+      const res = await fetch(`/api/admin/users/${pluginTargetUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowedPlugins: allowedStr }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update plugin settings.');
+
+      // Update local state
+      setUsers(users.map((u) => (u.id === pluginTargetUser.id ? { ...u, allowedPlugins: allowedStr } : u)));
+      setShowPluginsModal(false);
+      setPluginTargetUser(null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update user plugins.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Title */}
@@ -277,6 +318,18 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
                           >
                             <Key size={14} />
                             <span style={{ fontSize: '0.75rem' }}>Reset MFA</span>
+                          </button>
+                        )}
+
+                        {!isSelf && u.role === 'USER' && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleOpenPluginsModal(u)}
+                            title="Configure Authorized Plugins for this user"
+                            style={{ padding: '0.25rem 0.4rem' }}
+                          >
+                            <span style={{ fontSize: '14px', lineHeight: 1 }}>🔌</span>
+                            <span style={{ fontSize: '0.75rem' }}>Plugins</span>
                           </button>
                         )}
 
@@ -435,6 +488,64 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Plugin Authorization Modal block */}
+      {showPluginsModal && pluginTargetUser && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1.5rem',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '440px' }}>
+            <h3 style={{ fontSize: '1.5rem', color: 'var(--accent)', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>🔌</span>
+              <span>Manage User Plugins</span>
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+              Select which optional plugins standard user <strong>{pluginTargetUser.username}</strong> is authorized to access.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', margin: '1.5rem 0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedPlugins.includes('proxmox-ve')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedPlugins([...selectedPlugins, 'proxmox-ve']);
+                    } else {
+                      setSelectedPlugins(selectedPlugins.filter((p) => p !== 'proxmox-ve'));
+                    }
+                  }}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <strong style={{ fontSize: '0.95rem' }}>Proxmox VE Plugin</strong>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Grant access to view and cycle VM instances</span>
+                </div>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setShowPluginsModal(false); setPluginTargetUser(null); }} disabled={loading}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSavePlugins} disabled={loading}>
+                {loading ? 'Saving Settings...' : 'Save Permissions'}
+              </button>
+            </div>
           </div>
         </div>
       )}

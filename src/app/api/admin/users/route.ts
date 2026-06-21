@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         mfaEnforced: true,
         isSuspended: true,
         avatarUrl: true,
+        allowedPlugins: true,
         createdAt: true,
       },
     });

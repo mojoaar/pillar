@@ -10,7 +10,9 @@ import {
   BookOpen, 
   Code, 
   ShieldAlert, 
-  LogOut
+  LogOut,
+  Server,
+  Puzzle
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import styles from './Sidebar.module.css';
@@ -22,6 +24,7 @@ interface SidebarProps {
     username: string;
     role: string;
     avatarUrl: string | null;
+    allowedPlugins?: string | null;
   };
 }
 
@@ -105,6 +108,16 @@ export default function Sidebar({ user }: SidebarProps) {
           <span className={styles.navText}>API Reference</span>
         </Link>
 
+        {(user.role === 'ADMIN' || user.allowedPlugins?.includes('proxmox-ve')) && (
+          <Link 
+            href="/proxmox" 
+            className={`${styles.navItem} ${isActive('/proxmox') ? styles.navItemActive : ''}`}
+          >
+            <Server size={20} />
+            <span className={styles.navText}>Proxmox Console</span>
+          </Link>
+        )}
+
         {/* Dedicated Admin Console (ADMIN-role only) */}
         {user.role === 'ADMIN' && (
           <>
@@ -129,6 +142,14 @@ export default function Sidebar({ user }: SidebarProps) {
             >
               <ShieldAlert size={20} />
               <span className={styles.navText}>Admin Panel</span>
+            </Link>
+
+            <Link 
+              href="/admin/plugins" 
+              className={`${styles.navItem} ${isActive('/admin/plugins') ? styles.navItemActive : ''}`}
+            >
+              <Puzzle size={20} />
+              <span className={styles.navText}>Manage Plugins</span>
             </Link>
           </>
         )}

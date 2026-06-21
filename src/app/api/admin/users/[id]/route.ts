@@ -43,7 +43,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body parameters
     const body = await request.json();
-    const { role: targetRole, isSuspended, resetMfa } = body;
+    const { role: targetRole, isSuspended, resetMfa, allowedPlugins } = body;
 
     const updateData: any = {};
     const auditActions: string[] = [];
@@ -56,6 +56,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (isSuspended !== undefined) {
       updateData.isSuspended = !!isSuspended;
       auditActions.push(updateData.isSuspended ? 'Account Suspended' : 'Account Re-activated');
+    }
+
+    if (allowedPlugins !== undefined) {
+      updateData.allowedPlugins = allowedPlugins;
+      auditActions.push(`Allowed plugins updated to: ${allowedPlugins || 'none'}`);
     }
 
     // Handle Administrative MFA Override (resetting or disabling user MFA)
@@ -77,6 +82,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         role: true,
         mfaEnabled: true,
         isSuspended: true,
+        allowedPlugins: true,
       },
     });
 

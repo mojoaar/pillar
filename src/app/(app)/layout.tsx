@@ -20,7 +20,7 @@ export default async function AppLayout({
   // Query the user's fresh database profile to get their live avatar URL (Finding #avatar-sync)
   const dbUser = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarUrl: true },
+    select: { avatarUrl: true, allowedPlugins: true },
   });
 
   const user = {
@@ -29,6 +29,7 @@ export default async function AppLayout({
     username: (session.user as any).username || 'user',
     role: (session.user as any).role || 'USER',
     avatarUrl: dbUser?.avatarUrl || null,
+    allowedPlugins: dbUser?.allowedPlugins || null,
   };
 
   return (

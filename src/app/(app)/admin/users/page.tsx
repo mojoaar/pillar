@@ -29,6 +29,7 @@ export default async function AdminUsersPage() {
     role: u.role,
     mfaEnabled: u.mfaEnabled,
     isSuspended: u.isSuspended,
+    allowedPlugins: u.allowedPlugins,
     createdAt: u.createdAt.toISOString(),
   }));
 

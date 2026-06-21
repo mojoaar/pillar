@@ -1,0 +1,125 @@
+import https from 'https';
+
+interface ProxmoxConfig {
+  apiUrl: string;
+  apiToken: string;
+  verifySsl?: boolean;
+}
+
+/**
+ * Perform a secure HTTPS request using Node's native https module.
+ * This guarantees perfect support for self-signed certificates with `rejectUnauthorized: false`.
+ */
+function httpsRequest(
+  url: string,
+  method: 'GET' | 'POST',
+  headers: Record<string, string>,
+  postData?: string,
+  verifySsl = true
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const options: https.RequestOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method,
+      headers,
+      rejectUnauthorized: verifySsl,
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(data));
+          } catch (e) {
+            resolve({ raw: data });
+          }
+        } else {
+          reject(new Error(`Proxmox API returned status ${res.statusCode}: ${data}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    if (postData) {
+      req.write(postData);
+    }
+    req.end();
+  });
+}
+
+export class ProxmoxClient {
+  private apiUrl: string;
+  private apiToken: string;
+  private verifySsl: boolean;
+
+  constructor(config: ProxmoxConfig) {
+    this.apiUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
+    this.apiToken = config.apiToken;
+    this.verifySsl = config.verifySsl !== false; // default true, false if explicitly set
+  }
+
+  private getHeaders(): Record<string, string> {
+    return {
+      'Authorization': `PVEAPIToken=${this.apiToken}`,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+  }
+
+  /**
+   * Test connection to the Proxmox cluster (Fetches version)
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      const url = `${this.apiUrl}/version`;
+      await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+      return true;
+    } catch (err) {
+      console.error('[Proxmox Client] Connection test failed:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Fetches cluster nodes
+   */
+  async getNodes(): Promise<any[]> {
+    const url = `${this.apiUrl}/nodes`;
+    const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+    return res.data || [];
+  }
+
+  /**
+   * Fetches resource list (including all VMs and Containers in cluster)
+   */
+  async getClusterResources(): Promise<any[]> {
+    const url = `${this.apiUrl}/cluster/resources`;
+    const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+    return res.data || [];
+  }
+
+  /**
+   * Sends a power state action/command to a target VM or LXC container
+   * @param node The Proxmox node hosting the VM
+   * @param vmid The numeric virtual machine identifier
+   * @param type 'qemu' (for VMs) or 'lxc' (for containers)
+   * @param action 'start', 'stop', 'shutdown', 'reboot', 'suspend'
+   */
+  async controlVm(node: string, vmid: number, type: 'qemu' | 'lxc', action: 'start' | 'stop' | 'shutdown' | 'reboot' | 'suspend'): Promise<any> {
+    const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/status/${action}`;
+    const res = await httpsRequest(url, 'POST', this.getHeaders(), '{}', this.verifySsl);
+    return res.data || res;
+  }
+}

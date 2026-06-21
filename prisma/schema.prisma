@@ -20,6 +20,7 @@ model User {
   mfaEnforced  Boolean            @default(false)
   mfaBackupCodes String?          // encrypted AES-256-GCM comma-separated codes
   isSuspended  Boolean            @default(false)
+  allowedPlugins String?           // comma-separated plugin IDs authorized for USER role (Phase 11)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   
@@ -69,4 +70,12 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Plugin {
+  id        String   @id // e.g. "proxmox-ve"
+  enabled   Boolean  @default(false)
+  config    String?  // JSON string encrypted using AES-256-GCM
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

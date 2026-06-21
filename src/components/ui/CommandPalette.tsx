@@ -10,7 +10,8 @@ import {
   Compass, 
   X,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Server
 } from 'lucide-react';
 import styles from './CommandPalette.module.css';
 
@@ -141,6 +142,14 @@ export default function CommandPalette() {
       subtitle: 'Inspect and test REST API endpoints',
       icon: <CodeIcon />,
       action: () => { window.location.href = '/apidocs'; }
+    },
+    {
+      id: 'nav-proxmox',
+      category: 'Navigation',
+      title: 'Go to Proxmox Console',
+      subtitle: 'Monitor virtual machines and cluster nodes',
+      icon: <ServerIcon />,
+      action: () => { window.location.href = '/proxmox'; }
     },
 
     // Theme Hot-Swappers
@@ -280,6 +289,7 @@ export default function CommandPalette() {
   function SettingsIcon() { return <Type size={18} />; }
   function BookOpenIcon() { return <Type size={18} />; }
   function CodeIcon() { return <Type size={18} />; }
+  function ServerIcon() { return <Server size={18} />; }
 
   // 4. Map dynamic connections into Action schema format
   const connectionCommands: CommandItem[] = connections.map((conn) => ({
