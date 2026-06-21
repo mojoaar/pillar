@@ -98,3 +98,9 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [ ] 1-Click Saved Maintenance Scripts & Automation Engine
 - [ ] Live Latency Ping Diagnostics & TCP Host Port Status Checkers
 - [x] Personal API Keys Management & Token Bearer Authentication API
+
+### Phase 13: Native CLI Client (Go)
+- [ ] Interactive login flow with MFA/TOTP challenge support
+- [ ] List saved connection profiles from the gateway
+- [ ] Launch interactive SSH sessions through Pillar's WebSocket tunnel
+- [ ] Terminal raw mode, resize signals, and PTY pipe management
