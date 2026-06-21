@@ -13,11 +13,9 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
   const clientRef = useRef<any>(null);
 
   useEffect(() => {
-    // 1. Dynamically load guacamole-common-js on-demand from CDN (Gotcha #42 compliance)
+    // 1. Dynamically load guacamole-common-js on-demand from local static directory
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/guacamole-common-js@1.5.0/dist/cjs/guacamole-common.min.js';
-    script.integrity = 'sha384-Ju988qcXXifLBn6uS+pMRoJaPzh12qxsH08vOODtNsBhasnkuZowmtl/Z9SIJczt';
-    script.crossOrigin = 'anonymous';
+    script.src = '/js/guacamole-common.min.js';
     script.async = true;
     
     script.onload = () => {
@@ -95,7 +93,7 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
     };
 
     script.onerror = () => {
-      setError('Failed to fetch Guacamole assets from CDN. Check network connectivity.');
+      setError('Failed to load Guacamole assets. Please refresh or verify server status.');
     };
 
     document.body.appendChild(script);
