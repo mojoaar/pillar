@@ -322,6 +322,7 @@ app.prepare().then(() => {
 
           ws.on('close', async () => {
             console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}.`);
+            sessionRegistry.delete(sessionId);
             
             if (session) {
               // Clean up listeners for this socket
@@ -331,7 +332,6 @@ app.prepare().then(() => {
                 session.listeners.delete(ws);
               }
               session.activeSockets.delete(ws);
-              sessionRegistry.delete(sessionId);
 
               // If no active browser tabs are connected to this SSH session, start the 5-minute persistent watchdog!
               if (session.activeSockets.size === 0) {
@@ -468,6 +468,7 @@ app.prepare().then(() => {
 
         ws.on('close', async () => {
           console.log(`[WS-SSH] Web client disconnected from fresh session ID ${sessionId}.`);
+          sessionRegistry.delete(sessionId);
           
           const activeSess = persistentSshSessions.get(sessionKey);
           if (activeSess) {
@@ -477,7 +478,6 @@ app.prepare().then(() => {
               activeSess.listeners.delete(ws);
             }
             activeSess.activeSockets.delete(ws);
-            sessionRegistry.delete(sessionId);
 
             // Start 5-minute persistent watchdog if no active sockets remain
             if (activeSess.activeSockets.size === 0) {

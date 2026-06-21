@@ -46,11 +46,21 @@ export default function Header({ user }: HeaderProps) {
     }
   };
 
-  // Poll for active session counts and details
+  // Poll for active session counts and details, with immediate listeners on state changes (Finding #session-realtime)
   useEffect(() => {
     fetchSessionCount();
-    const interval = setInterval(fetchSessionCount, 10000); // poll every 10s
-    return () => clearInterval(interval);
+
+    const handleStateChange = () => {
+      fetchSessionCount();
+    };
+
+    window.addEventListener('session-state-changed', handleStateChange);
+    const interval = setInterval(fetchSessionCount, 10000); // fallback polling every 10s
+
+    return () => {
+      window.removeEventListener('session-state-changed', handleStateChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleOpenSessionsModal = async () => {

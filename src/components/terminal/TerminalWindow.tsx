@@ -121,6 +121,7 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       // Connect up Duplex pipeline streams
       socket.onopen = () => {
         term.write('\r\n\x1b[32m[Pillar Gateway] Connection established! Resuming session...\x1b[0m\r\n\r\n');
+        window.dispatchEvent(new CustomEvent('session-state-changed'));
       };
 
       socket.onmessage = (event) => {
@@ -145,6 +146,7 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
         isSocketClosed.current = true;
         term.write(`\r\n\x1b[31m[Pillar Gateway Error] Sockets closed (Code ${code}): ${reason}\x1b[0m\r\n`);
         term.write('\r\n\x1b[33m[Pillar Gateway] Press ANY key to attempt reconnection...\x1b[0m\r\n');
+        window.dispatchEvent(new CustomEvent('session-state-changed'));
       };
     };
 
