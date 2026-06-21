@@ -845,7 +845,7 @@ app.prepare().then(() => {
 
             // Map connection arguments to the matching guacd instruction parameters
             const argValues = argsList.map((argName) => {
-              if (argName.startsWith('VERSION_')) return argName;
+              if (argName.startsWith('VERSION_')) return '';
               if (argName === 'hostname') return connection.host;
               if (argName === 'port') return (connection.port || 3389).toString();
               if (argName === 'username') return connection.username;
@@ -856,6 +856,8 @@ app.prepare().then(() => {
               if (argName === 'width') return '1024';
               if (argName === 'height') return '768';
               if (argName === 'dpi') return '96';
+              if (argName === 'color-depth') return '24';
+              if (argName === 'client-name') return 'Pillar';
               return ''; // all other parameters blank
             });
 
