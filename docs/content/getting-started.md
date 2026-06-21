@@ -69,6 +69,30 @@ Once created, the setup wizard shuts down permanently to secure the system, and 
 
 ---
 
+## ⌨️ Keyboard Shortcuts & Interactive Terminal Features
+
+Pillar includes advanced, modifier-independent global shortcuts and local terminal clipboard interactivity engines to provide a lightning-fast, desktop-native user experience.
+
+### 🔍 Spotlight Command Palette
+- **Trigger Chord**: Press **`Cmd+K`** (on macOS) or **`Ctrl+K`** (on Windows/Linux) globally on any page.
+- **Actions Available**:
+  - Instantly search through your connections catalog.
+  - Teleport to different navigation tabs (Dashboard, Connections, Settings, Documentation, API Reference, Proxmox Console).
+  - Hot-swap between all **8 client color themes** and **10 monospace coding fonts** on-the-fly.
+
+### 📋 Terminal Interactivity & Clipboard Overrides
+Inside the **SSH Web Terminal**:
+- **Automatic Copy**: Highlight any text within the terminal window to **automatically copy** it to your system clipboard (no shortcuts required!).
+- **Paste Intercept Overrides**:
+  - Press **`Cmd+V`** (macOS) or **`Ctrl+V`** (Windows/Linux) to instantly paste your system clipboard content directly into the active prompt.
+  - Standard browser context right-click pastes are also fully intercepted and channeled cleanly.
+
+### 🔄 Self-Healing Session Handshakes
+- If a connection is terminated due to network lag, server restarts, or target host dropouts, the terminal viewport catches the drop and displays: `[Pillar Gateway] Press ANY key to attempt reconnection...`.
+- Simply **press any key** to instantly trigger a self-healing handshake and reconnect!
+
+---
+
 ## 📚 Next Steps
 
 - Learn [how to generate and add SSH Keys](/docs/ssh-keys) for secure key-based logins.
