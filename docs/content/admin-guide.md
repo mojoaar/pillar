@@ -76,8 +76,8 @@ On your Proxmox VE web interface:
 3. Assign the following privileges:
    - **`VM.Audit`**: Allows Pillar to read VM status, configurations, and resource limits.
    - **`VM.PowerMgmt`**: Required to trigger power operations (Start, Stop, Shutdown, Reboot, Suspend).
-   - **`VM.Monitor`**: Required to query QEMU guest agent for VM IP addresses and network interfaces.
-   - **`VM.GuestAgent`**: Required to execute commands via QEMU guest agent (display VM IPs).
+   - **`VM.Console`**: Required to launch embedded noVNC console sessions from the Proxmox dashboard.
+   - **`VM.GuestAgent`**: Required to query QEMU guest agent for VM IP addresses (use `VM.GuestAgent.Unrestricted` if available).
    - **`Sys.Audit`**: Required to read physical cluster host node CPU, RAM, and disk status metrics.
 
 #### Step B: Create a Dedicated API User
