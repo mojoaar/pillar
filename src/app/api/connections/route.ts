@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       userId: c.userId,
       name: c.name,
       host: c.host,
+      domain: c.domain,
       port: c.port,
       protocol: c.protocol, // include protocol
       ignoreCert: c.ignoreCert,
