@@ -83,8 +83,13 @@ export async function PATCH(request: NextRequest) {
     const finalConfig: Record<string, any> = {};
 
     definition.configFields.forEach((field) => {
-      const submittedValue = config[field.key];
+      let submittedValue = config[field.key];
       
+      // Unchecked checkboxes are not sent by the browser — default to 'false'
+      if (field.type === 'checkbox' && submittedValue === undefined) {
+        submittedValue = 'false';
+      }
+
       // If field is password, and matches maskSecret's output, retain existing decrypted value!
       if (field.type === 'password' && submittedValue === maskSecret('dummy')) {
         finalConfig[field.key] = existingConfig[field.key] || '';
