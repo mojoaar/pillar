@@ -196,7 +196,13 @@
 .sidebar.collapsed .logoSection,
 .sidebar.collapsed .userSection {
   justify-content: center;
-  padding: 1rem;
+  padding: 0.5rem;
+}
+
+.sidebar.collapsed .avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.85rem;
 }
 
 .sidebar.collapsed .navItem {
