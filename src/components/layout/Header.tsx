@@ -51,9 +51,10 @@ export default function Header({ user }: HeaderProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleOpenSessionsModal = () => {
+  const handleOpenSessionsModal = async () => {
     // Only administrators may inspect active connection streams (Security privacy barrier)
     if (user.role === 'ADMIN' && sessionCount > 0) {
+      await fetchSessionCount(); // Instantly poll for fresh accurate metrics to eliminate HMR/double-mount lags! (Finding #session-lag)
       setShowSessionsModal(true);
     }
   };
