@@ -134,8 +134,9 @@ export class ProxmoxClient {
    */
   async getVmIp(node: string, vmid: number, type: 'qemu' | 'lxc'): Promise<string | null> {
     try {
-      const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/agent/network-get-interfaces`;
-      const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+      // Proxmox agent API uses POST with command in body
+      const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/agent`;
+      const res = await httpsRequest(url, 'POST', this.getHeaders(), JSON.stringify({ command: 'network-get-interfaces' }), this.verifySsl);
       const ifaces = res.data?.result || [];
       for (const iface of ifaces) {
         const ips = iface['ip-addresses'] || [];
