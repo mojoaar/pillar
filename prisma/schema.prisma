@@ -34,6 +34,7 @@ model Connection {
   name         String
   host         String
   port         Int                @default(22)
+  protocol     String             @default("SSH")      // SSH or VNC
   username     String
   authType     String             @default("PASSWORD") // PASSWORD or KEY
   password     String?            // encrypted AES-256-GCM

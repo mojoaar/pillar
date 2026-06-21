@@ -8,6 +8,7 @@ interface ConnectionModel {
   name: string;
   host: string;
   port: number;
+  protocol?: 'SSH' | 'VNC';
   username: string;
   authType: 'PASSWORD' | 'KEY';
   isShared: boolean;
@@ -44,6 +45,7 @@ export default function ConnectionsCatalog({
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState(22);
+  const [protocol, setProtocol] = useState<'SSH' | 'VNC'>('SSH');
   const [username, setUsername] = useState('root');
   const [authType, setAuthType] = useState<'PASSWORD' | 'KEY'>('PASSWORD');
   const [password, setPassword] = useState('');
@@ -60,6 +62,7 @@ export default function ConnectionsCatalog({
     setName('');
     setHost('');
     setPort(22);
+    setProtocol('SSH');
     setUsername('root');
     setAuthType('PASSWORD');
     setPassword('');
@@ -79,6 +82,7 @@ export default function ConnectionsCatalog({
     setName(conn.name);
     setHost(conn.host);
     setPort(conn.port);
+    setProtocol(conn.protocol || 'SSH');
     setUsername(conn.username);
     setAuthType(conn.authType);
     setPassword(''); // never leak password back (Gotcha #113)
@@ -111,6 +115,7 @@ export default function ConnectionsCatalog({
         name,
         host,
         port: Number(port),
+        protocol, // include protocol parameter (SSH / VNC)
         username,
         authType,
         password: authType === 'PASSWORD' ? password : null,
@@ -236,12 +241,21 @@ export default function ConnectionsCatalog({
               <div key={conn.id} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
                 <div className="flex-between">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Terminal size={20} style={{ color: 'var(--accent)' }} />
+                    {conn.protocol === 'VNC' ? (
+                      <span style={{ color: 'var(--success)', display: 'flex' }}>📺</span>
+                    ) : (
+                      <Terminal size={20} style={{ color: 'var(--accent)' }} />
+                    )}
                     <strong style={{ fontSize: '1.05rem', color: 'var(--text-primary)' }}>{conn.name}</strong>
                   </div>
-                  <span className={`badge ${conn.authType === 'PASSWORD' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
-                    {conn.authType === 'PASSWORD' ? 'Password' : 'Key'}
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <span className="badge" style={{ fontSize: '0.65rem', backgroundColor: 'var(--bg-tertiary)' }}>
+                      {conn.protocol || 'SSH'}
+                    </span>
+                    <span className={`badge ${conn.authType === 'PASSWORD' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem' }}>
+                      {conn.authType === 'PASSWORD' ? 'Password' : 'Key'}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -256,7 +270,7 @@ export default function ConnectionsCatalog({
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                  <a href={`/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+                  <a href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
                     Connect
                   </a>
 
@@ -298,10 +312,10 @@ export default function ConnectionsCatalog({
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '540px', overflowY: 'auto', maxHeight: '90vh' }}>
             <h3 style={{ fontSize: '1.5rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>
-              {editingConnection ? 'Modify Connection' : 'New SSH Connection'}
+              {editingConnection ? 'Modify Connection' : 'New Connection Profile'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-              All passwords and private keys are encrypted with AES-256-GCM.
+              All connection passwords and private keys are encrypted with AES-256-GCM.
             </p>
 
             {error && (
@@ -319,6 +333,28 @@ export default function ConnectionsCatalog({
             )}
 
             <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="conn-protocol">Connection Protocol</label>
+                <select
+                  id="conn-protocol"
+                  className="input-field"
+                  value={protocol}
+                  onChange={(e) => {
+                    const newProto = e.target.value as 'SSH' | 'VNC';
+                    setProtocol(newProto);
+                    // Dynamically update standard ports
+                    setPort(newProto === 'VNC' ? 5900 : 22);
+                    if (newProto === 'VNC') {
+                      setAuthType('PASSWORD');
+                    }
+                  }}
+                  disabled={loading}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="SSH">SSH — Secure Terminal Access</option>
+                  <option value="VNC">VNC — Browser-Based Desktop Viewer</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label htmlFor="conn-name">Display Name</label>
                 <input
@@ -363,12 +399,12 @@ export default function ConnectionsCatalog({
               </div>
 
               <div className="form-group">
-                <label htmlFor="conn-username">SSH Username</label>
+                <label htmlFor="conn-username">Username</label>
                 <input
                   type="text"
                   id="conn-username"
                   className="input-field"
-                  placeholder="root"
+                  placeholder={protocol === 'VNC' ? 'admin' : 'root'}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={loading}
@@ -376,33 +412,35 @@ export default function ConnectionsCatalog({
                 />
               </div>
 
-              <div className="form-group">
-                <label>Authentication Handler</label>
-                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input
-                      type="radio"
-                      name="authType"
-                      checked={authType === 'PASSWORD'}
-                      onChange={() => setAuthType('PASSWORD')}
-                      disabled={loading}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Password</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                    <input
-                      type="radio"
-                      name="authType"
-                      checked={authType === 'KEY'}
-                      onChange={() => setAuthType('KEY')}
-                      disabled={loading}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <span>Private Key</span>
-                  </label>
+              {protocol === 'SSH' && (
+                <div className="form-group">
+                  <label>Authentication Handler</label>
+                  <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                      <input
+                        type="radio"
+                        name="authType"
+                        checked={authType === 'PASSWORD'}
+                        onChange={() => setAuthType('PASSWORD')}
+                        disabled={loading}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>Password</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                      <input
+                        type="radio"
+                        name="authType"
+                        checked={authType === 'KEY'}
+                        onChange={() => setAuthType('KEY')}
+                        disabled={loading}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>Private Key</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {authType === 'PASSWORD' ? (
                 <div className="form-group">

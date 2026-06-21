@@ -8,6 +8,7 @@ import { db } from './src/lib/db';
 import { decrypt } from './src/lib/crypto';
 import { connectSSH } from './src/lib/ssh';
 import { writeAudit } from './src/lib/audit';
+import net from 'net';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -104,8 +105,9 @@ app.prepare().then(() => {
   // Throttle MFA configurations
   expressApp.use('/api/profile/mfa', rateLimitMiddleware(10, 60 * 1000)); // 10 attempts/minute
 
-  // Initialize WebSocket Server attached to the shared HTTP server
+  // Initialize Web Socket Servers
   const wss = new WebSocketServer({ noServer: true });
+  const wssVnc = new WebSocketServer({ noServer: true });
 
   // Session registry tracking active connections globally
   const activeSessions = new Map<string, { ws: WebSocket; username: string; host: string; startedAt: Date }>();
@@ -119,7 +121,9 @@ app.prepare().then(() => {
     startedAt: s.startedAt,
   }));
 
-  // Handle WebSocket connections
+  // ==========================================
+  // 1. WEBSOCKET SSH HANDLER (Phase 4)
+  // ==========================================
   wss.on('connection', async (ws: WebSocket, request) => {
     const url = request.url || '';
     const parsedUrl = parse(url, true);
@@ -144,7 +148,6 @@ app.prepare().then(() => {
     }, 5000);
 
     try {
-      // 1. Authenticate WS Upgrade request using NextAuth session cookies (Gotcha #8)
       const cookies = parseCookies(request.headers.cookie || '');
       const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
       const sessionToken = cookies[cookieName];
@@ -164,7 +167,6 @@ app.prepare().then(() => {
         throw new Error('UNAUTHORIZED: Session token is invalid or expired.');
       }
 
-      // 2. Fetch the connection record from DB and execute ownership scopes checks (Security mandate #3)
       if (!connectionId) {
         throw new Error('BAD_REQUEST: Missing required parameter connectionId.');
       }
@@ -178,7 +180,7 @@ app.prepare().then(() => {
         throw new Error('NOT_FOUND: SSH Connection profile not found.');
       }
 
-      // Enforce BOLA checks: connection must belong to user OR be explicitly shared
+      // Enforce BOLA checks
       const isOwner = connection.userId === decodedUser.id;
       const isShared = connection.sharedWith.some((share) => share.userId === decodedUser.id);
 
@@ -186,14 +188,12 @@ app.prepare().then(() => {
         throw new Error('FORBIDDEN: You do not have permissions to load this connection profile.');
       }
 
-      console.log(`[WS-SSH] Auth Succeeded. User: ${decodedUser.email} -> Host: ${connection.host}:${connection.port}`);
-
-      // 3. Decrypt secrets at runtime only (Security Mandate #1 - never stored in persistent global state)
+      // Decrypt secrets
       const password = connection.password ? decrypt(connection.password) : null;
       const privateKey = connection.privateKey ? decrypt(connection.privateKey) : null;
       const passphrase = connection.passphrase ? decrypt(connection.passphrase) : null;
 
-      // Log session in registry
+      // Log session
       activeSessions.set(sessionId, {
         ws,
         username: decodedUser.email || 'unknown',
@@ -201,7 +201,7 @@ app.prepare().then(() => {
         startedAt: new Date(),
       });
 
-      // Write Audit Log entry
+      // Write Audit Log
       const ip = (request.headers['x-forwarded-for'] as string || request.socket.remoteAddress || '').split(',')[0].trim();
       await writeAudit(
         decodedUser.id as string,
@@ -210,11 +210,11 @@ app.prepare().then(() => {
         { connectionId: connection.id, name: connection.name, host: connection.host }
       );
 
-      // Disable watchdog trigger: handshake completed successfully
+      // Disable watchdog trigger
       clearTimeout(handshakeTimeout);
       isHandshakeComplete = true;
 
-      // 4. Connect to remote node using our connection factory
+      // Connect to remote node
       sshClient = await connectSSH({
         host: connection.host,
         port: connection.port,
@@ -225,7 +225,6 @@ app.prepare().then(() => {
         passphrase,
       });
 
-      // 5. Establish interactive terminal shell (pty)
       sshClient.shell({
         term: 'xterm-256color',
         cols: initialCols,
@@ -240,7 +239,6 @@ app.prepare().then(() => {
 
         shellStream = stream;
 
-        // Stream output from remote SSH shell to browser terminal (ws)
         shellStream.on('data', (data: any) => {
           ws.send(data);
         });
@@ -251,11 +249,9 @@ app.prepare().then(() => {
         });
       });
 
-      // Handle keystrokes and control directives from browser terminal
       ws.on('message', (message) => {
         const payload = message.toString();
 
-        // Check if message is a resize control directive
         if (payload.startsWith('{"type":"resize"')) {
           try {
             const parsed = JSON.parse(payload);
@@ -266,7 +262,6 @@ app.prepare().then(() => {
             console.error('[WS-SSH] Error parsing resize notification:', e);
           }
         } else {
-          // Otherwise pipe raw browser keystrokes to SSH PTY stdin
           if (shellStream) {
             shellStream.write(message);
           }
@@ -275,11 +270,8 @@ app.prepare().then(() => {
 
       ws.on('close', async () => {
         console.log(`[WS-SSH] Web Client disconnected. Session: ${sessionId}`);
-        
-        // Clean up connections
         if (shellStream) shellStream.end();
         if (sshClient) sshClient.end();
-        
         activeSessions.delete(sessionId);
 
         await writeAudit(
@@ -290,30 +282,164 @@ app.prepare().then(() => {
         );
       });
 
-      ws.on('error', (err) => {
-        console.error(`[WS-SSH] Session ${sessionId} Socket Error:`, err);
-      });
-
     } catch (err: any) {
-      clearTimeout(handshakeTimeout); // disable timeout on immediate caught failures
+      clearTimeout(handshakeTimeout);
       console.error('[WS-SSH] Initialization failed:', err.message);
-      // Send error format directly in terminal-escaped coloring so it renders cleanly in xterm.js!
       ws.send(`\r\n\x1b[31m[Pillar Gateway Error] Handshake failed: ${err.message}\x1b[0m\r\n`);
       ws.close(1008, err.message);
-      
       if (sshClient) sshClient.end();
       activeSessions.delete(sessionId);
     }
   });
 
-  // Intercept HTTP server 'upgrade' requests to authorize and route to WebSocket Server
+  // ==========================================
+  // 2. WEBSOCKET VNC TO TCP PROXY (Phase 9)
+  // ==========================================
+  wssVnc.on('connection', async (ws: WebSocket, request) => {
+    const url = request.url || '';
+    const parsedUrl = parse(url, true);
+    const query = parsedUrl.query;
+    
+    const connectionId = query.connectionId as string;
+    const sessionId = Math.random().toString(36).substring(2, 9);
+    
+    let tcpClient: net.Socket | null = null;
+    let isHandshakeComplete = false;
+
+    // Handshaking watchdog timeout
+    const handshakeTimeout = setTimeout(() => {
+      if (!isHandshakeComplete) {
+        console.warn(`[WS-VNC] Handshake timed out. Terminating session ID ${sessionId}.`);
+        ws.close(1008, 'Handshake timed out');
+      }
+    }, 5000);
+
+    try {
+      const cookies = parseCookies(request.headers.cookie || '');
+      const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
+      const sessionToken = cookies[cookieName];
+
+      if (!sessionToken) {
+        throw new Error('UNAUTHORIZED: No active gateway session.');
+      }
+
+      const decodedUser = await decode({
+        token: sessionToken,
+        secret: process.env.NEXTAUTH_SECRET!,
+        salt: cookieName,
+      });
+
+      if (!decodedUser || !decodedUser.id) {
+        throw new Error('UNAUTHORIZED: Token invalid.');
+      }
+
+      if (!connectionId) {
+        throw new Error('BAD_REQUEST: Missing connectionId.');
+      }
+
+      const connection = await db.connection.findUnique({
+        where: { id: connectionId },
+        include: { sharedWith: true },
+      });
+
+      if (!connection || connection.protocol !== 'VNC') {
+        throw new Error('NOT_FOUND: VNC profile not found.');
+      }
+
+      // Enforce BOLA checks
+      const isOwner = connection.userId === decodedUser.id;
+      const isShared = connection.sharedWith.some((share) => share.userId === decodedUser.id);
+
+      if (!isOwner && !isShared) {
+        throw new Error('FORBIDDEN: Scope violation.');
+      }
+
+      console.log(`[WS-VNC] Auth Succeeded. User: ${decodedUser.email} -> VNC: ${connection.host}:${connection.port}`);
+
+      // Log session
+      activeSessions.set(sessionId, {
+        ws,
+        username: decodedUser.email || 'unknown',
+        host: `${connection.host} (VNC)`,
+        startedAt: new Date(),
+      });
+
+      // Write Audit Log
+      const ip = (request.headers['x-forwarded-for'] as string || request.socket.remoteAddress || '').split(',')[0].trim();
+      await writeAudit(
+        decodedUser.id as string,
+        'VNC Session Initializing',
+        ip,
+        { connectionId: connection.id, name: connection.name, host: connection.host }
+      );
+
+      clearTimeout(handshakeTimeout);
+      isHandshakeComplete = true;
+
+      // Establish raw TCP VNC connection to target node (default port 5900)
+      tcpClient = net.createConnection({
+        host: connection.host,
+        port: connection.port || 5900,
+      });
+
+      // Pipe VNC TCP socket outputs directly to Browser Websocket
+      tcpClient.on('data', (data) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data, { binary: true });
+        }
+      });
+
+      // Pipe Browser Websocket inputs directly to VNC TCP socket
+      ws.on('message', (message) => {
+        if (tcpClient && !tcpClient.destroyed) {
+          tcpClient.write(message as Buffer);
+        }
+      });
+
+      tcpClient.on('error', (err) => {
+        console.error('[WS-VNC] Remote TCP VNC Socket Error:', err.message);
+        ws.send(JSON.stringify({ error: `VNC Connection failed: ${err.message}` }));
+        ws.close();
+      });
+
+      tcpClient.on('close', () => {
+        console.log(`[WS-VNC] Remote VNC target socket closed. Session: ${sessionId}`);
+        ws.close();
+      });
+
+      ws.on('close', async () => {
+        console.log(`[WS-VNC] Web Client disconnected. Session: ${sessionId}`);
+        if (tcpClient) tcpClient.destroy();
+        activeSessions.delete(sessionId);
+
+        await writeAudit(
+          decodedUser.id as string,
+          'VNC Session Closed',
+          ip,
+          { connectionId: connection.id, name: connection.name, host: connection.host }
+        );
+      });
+
+    } catch (err: any) {
+      clearTimeout(handshakeTimeout);
+      console.error('[WS-VNC] Handshake crashed:', err.message);
+      ws.close(1008, err.message);
+      if (tcpClient) tcpClient.destroy();
+      activeSessions.delete(sessionId);
+    }
+  });
+
+  // Intercept HTTP server 'upgrade' requests to authorize and route to correct WebSocket Server
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = parse(request.url || '', true);
 
-    // Only handle upgrades on our terminal path, letting Next.js HMR upgrade paths pass cleanly (Finding #hmr-leak)
     if (pathname === '/api/ws/terminal') {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
+      });
+    } else if (pathname === '/api/ws/vnc') {
+      wssVnc.handleUpgrade(request, socket, head, (ws) => {
+        wssVnc.emit('connection', ws, request);
       });
     }
   });

@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
       name: c.name,
       host: c.host,
       port: c.port,
+      protocol: c.protocol, // include protocol (SSH / VNC)
       username: c.username,
       authType: c.authType,
       isShared: c.isShared,
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, port, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, port, protocol, username, authType, password, privateKey, passphrase } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -77,7 +78,8 @@ export async function POST(request: NextRequest) {
         userId: session.user.id as string,
         name: name.trim(),
         host: host.trim(),
-        port: Number(port) || 22,
+        port: Number(port) || (protocol === 'VNC' ? 5900 : 22),
+        protocol: protocol === 'VNC' ? 'VNC' : 'SSH',
         username: username.trim(),
         authType: authType === 'KEY' ? 'KEY' : 'PASSWORD',
         password: encryptedPassword,
