@@ -7,6 +7,7 @@ interface ConnectionModel {
   id: string;
   name: string;
   host: string;
+  domain?: string | null;
   port: number;
   protocol?: 'SSH' | 'VNC' | 'RDP';
   tags: string[]; // comma-separated tags array
@@ -45,6 +46,7 @@ export default function ConnectionsCatalog({
   // Modal Fields
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
+  const [domain, setDomain] = useState('');
   const [port, setPort] = useState(22);
   const [protocol, setProtocol] = useState<'SSH' | 'VNC' | 'RDP'>('SSH');
   const [tagsString, setTagsString] = useState(''); // Text input for creating tags (comma separated)
@@ -66,6 +68,7 @@ export default function ConnectionsCatalog({
   const resetForm = () => {
     setName('');
     setHost('');
+    setDomain('');
     setPort(22);
     setProtocol('SSH');
     setTagsString(''); // Clear tags text
@@ -87,6 +90,7 @@ export default function ConnectionsCatalog({
     setEditingEditingConnection(conn);
     setName(conn.name);
     setHost(conn.host);
+    setDomain(conn.domain || '');
     setPort(conn.port);
     setProtocol(conn.protocol || 'SSH');
     setTagsString(conn.tags ? conn.tags.join(', ') : ''); // Populate tags string
@@ -121,8 +125,9 @@ export default function ConnectionsCatalog({
       const payload = {
         name,
         host,
+        domain: domain || null,
         port: Number(port),
-        protocol, // include protocol parameter (SSH / VNC)
+        protocol, // include protocol parameter (SSH / VNC / RDP)
         tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
@@ -338,6 +343,12 @@ export default function ConnectionsCatalog({
                     <Globe size={14} style={{ color: 'var(--text-muted)' }} />
                     <span style={{ fontFamily: 'var(--terminal-font)' }}>{conn.host}:{conn.port}</span>
                   </div>
+                  {conn.domain && (
+                    <div className="flex-align-center">
+                      <Globe size={14} style={{ color: 'var(--accent)' }} />
+                      <span style={{ fontFamily: 'var(--terminal-font)', color: 'var(--accent)', fontSize: '0.8rem' }}>{conn.domain}</span>
+                    </div>
+                  )}
                   {conn.tags && conn.tags.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
                       {conn.tags.map((tag) => (
@@ -496,6 +507,21 @@ export default function ConnectionsCatalog({
                     required
                   />
                 </div>
+                <div className="form-group">
+                  <label htmlFor="conn-domain">Domain <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                  <input
+                    type="text"
+                    id="conn-domain"
+                    className="input-field"
+                    placeholder="e.g. pve.home.arpa"
+                    value={domain || ''}
+                    onChange={(e) => setDomain(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="grid-2">
                 <div className="form-group">
                   <label htmlFor="conn-port">Port</label>
                   <input

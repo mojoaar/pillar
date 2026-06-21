@@ -37,11 +37,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
     if (host) updateData.host = host.trim();
+    if (domain !== undefined) updateData.domain = domain ? domain.trim() : null;
     if (port) updateData.port = Number(port) || 22;
     if (protocol) updateData.protocol = protocol === 'VNC' ? 'VNC' : 'SSH';
     
@@ -104,6 +105,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         id: updated.id,
         name: updated.name,
         host: updated.host,
+        domain: updated.domain,
         port: updated.port,
         username: updated.username,
         authType: updated.authType,

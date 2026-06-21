@@ -35,6 +35,7 @@ model Connection {
   userId       String
   name         String
   host         String
+  domain       String?            // optional display domain name (e.g. "pve.home.arpa")
   port         Int                @default(22)
   protocol     String             @default("SSH")      // SSH or VNC
   tags         String?            // comma-separated tags e.g. "prod,web,pve"

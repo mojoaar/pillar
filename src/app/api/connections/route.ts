@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id as string,
         name: name.trim(),
         host: host.trim(),
+        domain: domain ? domain.trim() : null,
         port: Number(port) || (protocol === 'VNC' ? 5900 : 22),
         protocol: protocol === 'VNC' ? 'VNC' : 'SSH',
         tags: sanitizedTags,
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
         id: connection.id,
         name: connection.name,
         host: connection.host,
+        domain: connection.domain,
         port: connection.port,
         username: connection.username,
         authType: connection.authType,
