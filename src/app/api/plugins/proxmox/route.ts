@@ -96,7 +96,9 @@ export async function GET(request: NextRequest) {
           let ip: string | null = null;
           if (r.type === 'lxc') {
             const ipMatch = netInfo.match(/ip=([^/\s,]+)/);
-            ip = ipMatch ? ipMatch[1] : null;
+            const rawIp = ipMatch ? ipMatch[1] : null;
+            // Only accept actual IPv4 addresses, skip "dhcp" or other non-IP values
+            ip = rawIp && /^\d+\.\d+\.\d+\.\d+$/.test(rawIp) ? rawIp : null;
           } else {
             try {
               ip = await client.getVmIp(r.node, r.vmid, r.type);
