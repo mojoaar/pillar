@@ -99,16 +99,19 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  color: var(--danger);
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 1rem 1rem 1rem; /* Add elegant margins to match standard navItems spacing */
+  color: var(--text-primary);
   text-decoration: none;
   font-weight: 500;
-  border-top: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
   transition: all var(--transition-speed) ease;
 }
 
 .signOutLink:hover {
-  background-color: rgba(255, 85, 85, 0.05);
+  background-color: rgba(255, 85, 85, 0.1); /* Soft red background highlight */
+  color: var(--danger); /* Sophisticated shift to warning red on hover */
 }
 
 .avatar {
@@ -162,9 +165,14 @@
   .logoTitle, .userName, .userRole, .navText, .signOutText {
     display: none;
   }
-  .logoSection, .userSection, .signOutLink {
+  .logoSection, .userSection {
     justify-content: center;
     padding: 1rem;
+  }
+  .signOutLink {
+    justify-content: center;
+    padding: 0.75rem;
+    margin: 0.5rem auto; /* Center perfectly on collapsed layout */
   }
   .navItem {
     justify-content: center;
