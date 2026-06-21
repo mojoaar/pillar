@@ -129,7 +129,14 @@ app.prepare().then(() => {
   }>();
 
   // Session registry tracking active connections globally
-  const activeSessions = new Map<string, { ws: WebSocket; username: string; host: string; startedAt: Date }>();
+  const activeSessions = new Map<string, { 
+    ws: WebSocket; 
+    username: string; 
+    host: string; 
+    startedAt: Date;
+    connectionId: string;
+    protocol: string;
+  }>();
 
   // Expose session count for administration panel / overview card
   (globalThis as any).activeSSHCount = () => activeSessions.size;
@@ -138,6 +145,8 @@ app.prepare().then(() => {
     username: s.username,
     host: s.host,
     startedAt: s.startedAt,
+    connectionId: s.connectionId,
+    protocol: s.protocol,
   }));
 
   // ==========================================
@@ -237,6 +246,8 @@ app.prepare().then(() => {
           username: decodedUser.email || 'unknown',
           host: connection.host,
           startedAt: new Date(),
+          connectionId: connection.id,
+          protocol: 'SSH',
         });
 
         // Write brief re-attach logs
@@ -358,6 +369,8 @@ app.prepare().then(() => {
           username: decodedUser.email || 'unknown',
           host: connection.host,
           startedAt: new Date(),
+          connectionId: connection.id,
+          protocol: 'SSH',
         });
 
         // Set up standard data handlers
@@ -523,6 +536,8 @@ app.prepare().then(() => {
         username: decodedUser.email || 'unknown',
         host: `${connection.host} (VNC)`,
         startedAt: new Date(),
+        connectionId: connection.id,
+        protocol: 'VNC',
       });
 
       // Write Audit Log
@@ -660,6 +675,8 @@ app.prepare().then(() => {
         username: decodedUser.email || 'unknown',
         host: `${connection.host} (RDP)`,
         startedAt: new Date(),
+        connectionId: connection.id,
+        protocol: 'RDP',
       });
 
       // Write Audit Log
