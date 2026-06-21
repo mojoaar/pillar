@@ -960,6 +960,7 @@ app.prepare().then(() => {
       const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${ticket}`;
 
       pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
+        headers: { 'Authorization': `PVEAPIToken=${config.apiToken}` },
         rejectUnauthorized: verifySsl,
       });
 
