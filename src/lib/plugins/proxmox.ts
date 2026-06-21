@@ -135,4 +135,13 @@ export class ProxmoxClient {
       ticket: res.data?.ticket || '',
     };
   }
+
+  /**
+   * Fetches real-time status for a single node (CPU load, memory usage).
+   */
+  async getNodeStatus(node: string): Promise<any> {
+    const url = `${this.apiUrl}/nodes/${node}/status`;
+    const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+    return res.data || {};
+  }
 }

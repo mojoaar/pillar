@@ -48,21 +48,34 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch nodes and resources
+    // Fetch nodes, resources, and real-time node status in parallel
     const [nodes, resources] = await Promise.all([
       client.getNodes(),
       client.getClusterResources()
     ]);
 
-    console.log('[Proxmox API] Raw nodes sample:', JSON.stringify(nodes?.slice(0, 1)));
-    console.log('[Proxmox API] Raw resources node sample:', JSON.stringify(resources?.filter((r: any) => r.type === 'node')?.slice(0, 1)));
-    console.log('[Proxmox API] Raw resources qemu/lxc count:', resources?.filter((r: any) => r.type === 'qemu' || r.type === 'lxc')?.length);
+    // Fetch real-time CPU/Memory for each node
+    const nodeStatuses = await Promise.all(
+      nodes.map((n: any) => client.getNodeStatus(n.node).then((s: any) => ({ node: n.node, ...s })))
+    );
+
+    // Merge status data into node objects
+    const enrichedNodes = nodes.map((n: any) => {
+      const stats = nodeStatuses.find((s: any) => s.node === n.node) || {};
+      return {
+        ...n,
+        cpu: stats.cpu ?? n.cpu,
+        maxcpu: stats.cpuinfo?.cpus ?? n.maxcpu,
+        mem: stats.memory?.used ?? n.mem,
+        maxmem: stats.memory?.total ?? n.maxmem,
+      };
+    });
 
     return NextResponse.json({
       enabled: true,
       connected: true,
       data: {
-        nodes,
+        nodes: enrichedNodes,
         resources: resources.filter((r) => r.type === 'qemu' || r.type === 'lxc' || r.type === 'node')
       },
       ok: true
