@@ -1,0 +1,29 @@
+[Unit]
+Description=Pillar Remote Access Gateway Service
+After=network.target
+
+[Service]
+Type=simple
+# Ensure you create a dedicated non-privileged user or update to your system user (e.g. root/ubuntu)
+User=nextjs
+Group=nodejs
+
+WorkingDirectory=/opt/pillar
+ExecStart=/usr/bin/node dist/server.js
+
+# Auto-Restart service on crash or unexpected terminations
+Restart=always
+RestartSec=10
+
+# Load environment variable secrets from secure configuration file (chmod 600)
+EnvironmentFile=/opt/pillar/secrets.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Security Sandboxing constraints (Optional but recommended on modern systemd)
+# ProtectSystem=strict
+# ProtectHome=true
+# PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

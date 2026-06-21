@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  pillar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pillar-gateway
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/pillar.db?connection_limit=1
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    volumes:
+      # Mount persistent local storage volumes for SQLite databases and user uploads
+      - pillar-data:/app/data
+      - pillar-uploads:/app/public/uploads
+
+volumes:
+  pillar-data:
+    driver: local
+  pillar-uploads:
+    driver: local
