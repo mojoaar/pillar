@@ -221,9 +221,23 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
     // Keyboard focus lock
     term.focus();
 
+    // Listen for permanent disconnect commands from the UI DisconnectButton (Finding #disconnect-trigger)
+    const handleTerminateEvent = () => {
+      isSocketClosed.current = true;
+      if (socketRef.current) {
+        try {
+          socketRef.current.close(1000, 'terminate'); // Pass 'terminate' reason!
+        } catch (e) {}
+      }
+      window.location.href = '/connections'; // Hard redirect back to connections catalog
+    };
+
+    window.addEventListener('terminate-terminal-session', handleTerminateEvent);
+
     // 7. Cleanup pipelines and sockets on unmount
     return () => {
       isSocketClosed.current = true; // Mark as closed BEFORE closing the socket to prevent misleading console errors
+      window.removeEventListener('terminate-terminal-session', handleTerminateEvent);
       resizeObserver.disconnect();
       if (containerRef.current) {
         containerRef.current.removeEventListener('paste', handlePasteEvent);

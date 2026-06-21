@@ -149,16 +149,23 @@ export default async function DashboardPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <Terminal size={18} style={{ color: 'var(--accent)' }} />
+                    {conn.protocol === 'VNC' ? (
+                      <span style={{ color: 'var(--success)', display: 'flex', fontSize: '1.15rem' }}>📺</span>
+                    ) : conn.protocol === 'RDP' ? (
+                      <span style={{ color: 'var(--accent)', display: 'flex', fontSize: '1.15rem' }}>🖥️</span>
+                    ) : (
+                      <Terminal size={18} style={{ color: 'var(--accent)' }} />
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{conn.name}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--terminal-font)' }}>
                         {conn.username}@{conn.host}:{conn.port}
+                        {conn.domain && <span style={{ color: 'var(--accent)', marginLeft: '0.5rem' }}>({conn.domain})</span>}
                       </span>
                     </div>
                   </div>
                   
-                  <Link href={`/connections/${conn.id}`} className="btn btn-primary btn-sm">
+                  <Link href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : conn.protocol === 'RDP' ? `/connections/rdp/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm">
                     <span>Connect</span>
                     <ArrowRight size={14} />
                   </Link>

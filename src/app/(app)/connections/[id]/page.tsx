@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { notFound, redirect } from 'next/navigation';
 import Terminal from '@/components/terminal/Terminal';
+import DisconnectButton from '@/components/terminal/DisconnectButton';
 import Link from 'next/link';
 import { ArrowLeft, Maximize2, ShieldCheck, Terminal as TermIcon } from 'lucide-react';
 
@@ -69,11 +70,12 @@ export default async function ConnectionTerminalPage({ params }: TerminalPagePro
           </div>
         </div>
 
-        <div className="flex-align-center" style={{ gap: '0.75rem' }}>
+        <div className="flex-align-center" style={{ gap: '1.25rem' }}>
           <div className="flex-align-center" style={{ color: 'var(--success)', fontSize: '0.8rem', fontWeight: 600 }}>
             <ShieldCheck size={16} />
             <span>Encrypted Tunnel</span>
           </div>
+          <DisconnectButton />
         </div>
       </div>
 
