@@ -310,13 +310,11 @@ app.prepare().then(() => {
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = parse(request.url || '', true);
 
-    // Only handle upgrades on the dedicated /api/ws/terminal path
+    // Only handle upgrades on our terminal path, letting Next.js HMR upgrade paths pass cleanly (Finding #hmr-leak)
     if (pathname === '/api/ws/terminal') {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
-    } else {
-      socket.destroy();
     }
   });
 
