@@ -13,8 +13,8 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Initialize Next.js app instance
-const app = next({ dev, hostname, port });
+// Initialize Next.js app instance with Turbopack support in dev (Finding #next-turbo)
+const app = next({ dev, hostname, port, turbopack: dev });
 const handle = app.getRequestHandler();
 
 // Helper to parse cookies from header
@@ -78,14 +78,17 @@ app.prepare().then(() => {
     res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME Sniffing
     res.setHeader('Referrer-Policy', 'same-origin');
     
-    // Strict CSP Whitelisting Self-Origin, Google Fonts, image buffers, and WebSocket gateways
-    const csp = "default-src 'self'; " +
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-                "font-src 'self' https://fonts.gstatic.com; " +
-                "img-src 'self' data: blob:; " +
-                "connect-src 'self' ws: wss:;";
-    res.setHeader('Content-Security-Policy', csp);
+    // Only apply strict Content Security Policy in production to prevent blocking
+    // Next.js hot module reloading (HMR) and dev assets in development mode (Finding #csp-dev)
+    if (process.env.NODE_ENV === 'production') {
+      const csp = "default-src 'self'; " +
+                  "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                  "font-src 'self' https://fonts.gstatic.com; " +
+                  "img-src 'self' data: blob:; " +
+                  "connect-src 'self' ws: wss:;";
+      res.setHeader('Content-Security-Policy', csp);
+    }
     next();
   });
 
