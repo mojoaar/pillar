@@ -191,7 +191,7 @@ export default function ProxmoxDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
             {nodes.map((node) => {
               const cpuUsage = node.cpu && node.maxcpu ? (node.cpu * 100).toFixed(1) : '0.0';
-              const memUsage = node.mem && node.maxmem ? (node.mem * 100).toFixed(1) : '0.0';
+              const memUsage = node.mem && node.maxmem ? (node.mem / node.maxmem * 100).toFixed(1) : '0.0';
               
               return (
                 <div key={node.node} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -246,7 +246,7 @@ export default function ProxmoxDashboard() {
             {vms.map((vm) => {
               const isRunning = vm.status === 'running';
               const cpuUsage = vm.cpu && vm.maxcpu ? (vm.cpu * 100).toFixed(1) : '0.0';
-              const memUsage = vm.mem && vm.maxmem ? (vm.mem * 100).toFixed(1) : '0.0';
+              const memUsage = vm.mem && vm.maxmem ? (vm.mem / vm.maxmem * 100).toFixed(1) : '0.0';
               const keyPrefix = `${vm.id}-`;
 
               return (
