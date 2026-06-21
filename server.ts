@@ -987,7 +987,9 @@ app.prepare().then(() => {
       });
 
       pveWs.on('message', (data: any) => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(data);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(data, { binary: true });
+        }
       });
 
       pveWs.on('error', (err: any) => {
@@ -1025,38 +1027,38 @@ app.prepare().then(() => {
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = parseUrl(request.url || '');
 
-    // Validate Origin header to prevent Cross-Site WebSocket Hijacking (CSWSH)
-    const origin = request.headers.origin;
-    if (origin) {
-      const allowedHosts = [
-        request.headers.host || '',
-        process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : '',
-      ].filter(Boolean);
-      const originHost = new URL(origin).host;
-      if (!allowedHosts.includes(originHost)) {
-        console.warn(`[WS Upgrade] Rejected cross-origin WebSocket upgrade from: ${origin}`);
+    // Only apply strict Origin and session validation on our custom WebSocket API routes,
+    // allowing Next.js HMR WebSocket connections (/_next/webpack-hmr) to bypass safely (Finding #hmr-bypass)
+    if (pathname.startsWith('/api/ws/')) {
+      // Validate Origin header to prevent Cross-Site WebSocket Hijacking (CSWSH)
+      const origin = request.headers.origin;
+      if (origin) {
+        const allowedHosts = [
+          request.headers.host || '',
+          process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).host : '',
+        ].filter(Boolean);
+        const originHost = new URL(origin).host;
+        if (!allowedHosts.includes(originHost)) {
+          console.warn(`[WS Upgrade] Rejected cross-origin WebSocket upgrade from: ${origin}`);
+          socket.destroy();
+          return;
+        }
+      }
+
+      // Validate session cookie before performing the WebSocket upgrade
+      const cookies = parseCookies(request.headers.cookie || '');
+      const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
+      const sessionToken = cookies[cookieName];
+
+      if (!sessionToken) {
+        console.warn(`[WS Upgrade] Rejected unauthenticated WebSocket upgrade to: ${pathname}`);
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
       }
     }
 
-    // Validate session cookie before performing the WebSocket upgrade
-    const cookies = parseCookies(request.headers.cookie || '');
-    const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
-    const sessionToken = cookies[cookieName];
-
-    if (!sessionToken) {
-      console.warn(`[WS Upgrade] Rejected unauthenticated WebSocket upgrade to: ${pathname}`);
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-
     if (pathname === '/api/ws/terminal') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } else if (pathname === '/api/ws/vnc') {
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
