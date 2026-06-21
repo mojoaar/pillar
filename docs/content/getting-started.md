@@ -98,3 +98,4 @@ Inside the **SSH Web Terminal**:
 - Learn [how to generate and add SSH Keys](/docs/ssh-keys) for secure key-based logins.
 - Configure [Multi-Factor Authentication (MFA)](/docs/mfa-setup) on your account.
 - Review the [Administration Manual](/docs/admin-guide) for details on metrics, audits, and user management.
+- Follow the [Production Deployment Guide](/docs/deployment) for Proxmox, Nginx Proxy Manager, and Docker setups.
