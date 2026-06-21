@@ -2,13 +2,15 @@ import express from 'express';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import next from 'next';
-import { parse } from 'url';
 import { decode } from 'next-auth/jwt';
 import { db } from './src/lib/db';
 import { decrypt } from './src/lib/crypto';
 import { connectSSH } from './src/lib/ssh';
 import { writeAudit } from './src/lib/audit';
 import net from 'net';
+// Gotcha #url-parse: Next.js's getRequestHandler expects NextUrlWithParsedQuery from url.parse().
+// All WebSocket handlers use our WHATWG parseUrl() helper instead. Suppress the deprecation warning.
+import { parse } from 'url';
 import { sessionRegistry } from './src/lib/sessions';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -18,6 +20,18 @@ const port = parseInt(process.env.PORT || '3000', 10);
 // Initialize Next.js app instance (Webpack dev runner for absolute custom server stability)
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
+
+// WHATWG URL helper replacing deprecated url.parse()
+function parseUrl(raw: string) {
+  try {
+    const u = new URL(raw, 'http://localhost');
+    const params: Record<string, string> = {};
+    u.searchParams.forEach((v, k) => { params[k] = v; });
+    return { pathname: u.pathname, query: params };
+  } catch {
+    return { pathname: '/', query: {} as Record<string, string> };
+  }
+}
 
 // Helper to parse cookies from header
 function parseCookies(cookieHeader: string): Record<string, string> {
@@ -166,7 +180,7 @@ app.prepare().then(() => {
   // ==========================================
   wss.on('connection', async (ws: WebSocket, request) => {
     const url = request.url || '';
-    const parsedUrl = parse(url, true);
+    const parsedUrl = parseUrl(url);
     const query = parsedUrl.query;
     
     const connectionId = query.connectionId as string;
@@ -494,7 +508,7 @@ app.prepare().then(() => {
   // ==========================================
   wssVnc.on('connection', async (ws: WebSocket, request) => {
     const url = request.url || '';
-    const parsedUrl = parse(url, true);
+    const parsedUrl = parseUrl(url);
     const query = parsedUrl.query;
     
     const connectionId = query.connectionId as string;
@@ -634,7 +648,7 @@ app.prepare().then(() => {
   // ==========================================
   wssRdp.on('connection', async (ws: WebSocket, request) => {
     const url = request.url || '';
-    const parsedUrl = parse(url, true);
+    const parsedUrl = parseUrl(url);
     const query = parsedUrl.query;
     
     const connectionId = query.connectionId as string;
@@ -834,7 +848,7 @@ app.prepare().then(() => {
   // ==========================================
   wssPveVnc.on('connection', async (ws: WebSocket, request) => {
     const url = request.url || '';
-    const parsedUrl = parse(url, true);
+    const parsedUrl = parseUrl(url);
     const query = parsedUrl.query;
     
     const node = query.node as string;
@@ -1002,7 +1016,7 @@ app.prepare().then(() => {
 
   // Intercept HTTP server 'upgrade' requests — validate Origin and session cookie BEFORE upgrading
   server.on('upgrade', (request, socket, head) => {
-    const { pathname, query: upgradeQuery } = parse(request.url || '', true);
+    const { pathname } = parseUrl(request.url || '');
 
     // Validate Origin header to prevent Cross-Site WebSocket Hijacking (CSWSH)
     const origin = request.headers.origin;
