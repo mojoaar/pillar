@@ -856,8 +856,6 @@ app.prepare().then(() => {
     const type = (query.type as string) || 'qemu';
     const sessionId = Math.random().toString(36).substring(2, 9);
 
-    let pveWs: any = null;
-
     try {
       const cookies = parseCookies(request.headers.cookie || '');
       const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
@@ -955,16 +953,25 @@ app.prepare().then(() => {
         throw new Error('PVE_TICKET_FAILED: Could not obtain VNC console ticket from hypervisor.');
       }
 
-      // Establish WebSocket to Proxmox VNC
-      const WebSocketLib = await import('ws');
-      const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${ticket}`;
+      // Establish WebSocket to Proxmox VNC via raw HTTPS upgrade (guarantees headers)
+      const pvePath = `/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${encodeURIComponent(ticket)}`;
 
-      pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
-        headers: { 'Authorization': `PVEAPIToken=${config.apiToken}` },
+      const pveWss = httpsModule.request({
+        hostname: pveHost,
+        port: pvePort,
+        path: pvePath,
+        method: 'GET',
+        headers: {
+          'Authorization': `PVEAPIToken=${config.apiToken}`,
+          'Upgrade': 'websocket',
+          'Connection': 'Upgrade',
+          'Sec-WebSocket-Version': '13',
+          'Sec-WebSocket-Key': require('crypto').randomBytes(16).toString('base64'),
+        },
         rejectUnauthorized: verifySsl,
       });
 
-      pveWs.on('open', () => {
+      pveWss.on('upgrade', (pveRes: any, pveSocket: any) => {
         console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel open. Session: ${sessionId}`);
         sessionRegistry.set(sessionId, {
           ws,
@@ -974,44 +981,40 @@ app.prepare().then(() => {
           connectionId: vmid,
           protocol: 'PVE-VNC',
         });
+
+        // Bidirectional pipe between browser WS and PVE socket
+        pveSocket.on('data', (data: any) => {
+          if (ws.readyState === WebSocket.OPEN) ws.send(data);
+        });
+        pveSocket.on('error', (err: any) => {
+          console.error('[WS-PVE-VNC] PVE socket error:', err.message);
+          ws.close();
+        });
+        pveSocket.on('close', () => {
+          console.log(`[WS-PVE-VNC] PVE socket closed. Session: ${sessionId}`);
+          ws.close();
+        });
+
+        ws.on('message', (message: any) => {
+          pveSocket.write(message);
+        });
+        ws.on('close', () => {
+          console.log(`[WS-PVE-VNC] Browser disconnected. Session: ${sessionId}`);
+          pveSocket.destroy();
+          sessionRegistry.delete(sessionId);
+        });
       });
 
-      pveWs.on('message', (data: any) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data);
-        }
-      });
-
-      pveWs.on('error', (err: any) => {
-        console.error('[WS-PVE-VNC] PVE WebSocket error:', err.message);
+      pveWss.on('error', (err: any) => {
+        console.error('[WS-PVE-VNC] PVE upgrade error:', err.message);
         ws.close(1011, `PVE VNC error: ${err.message}`);
       });
 
-      pveWs.on('close', (code: number) => {
-        console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel closed (code ${code}). Session: ${sessionId}`);
-        ws.close();
-      });
-
-      ws.on('message', (message) => {
-        if (pveWs && pveWs.readyState === WebSocket.OPEN) {
-          pveWs.send(message);
-        }
-      });
-
-      ws.on('close', () => {
-        console.log(`[WS-PVE-VNC] Browser client disconnected. Session: ${sessionId}`);
-        if (pveWs && pveWs.readyState === WebSocket.OPEN) {
-          pveWs.close();
-        }
-        sessionRegistry.delete(sessionId);
-      });
+      pveWss.end();
 
     } catch (err: any) {
       console.error('[WS-PVE-VNC] Handshake crashed:', err.message);
       ws.close(1008, err.message);
-      if (pveWs) {
-        try { pveWs.close(); } catch (e) {}
-      }
       sessionRegistry.delete(sessionId);
     }
   });
