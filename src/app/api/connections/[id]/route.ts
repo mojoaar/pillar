@@ -50,7 +50,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       updateData.port = parsedPort;
     }
-    if (protocol) updateData.protocol = protocol === 'VNC' ? 'VNC' : 'SSH';
+    if (protocol) {
+      updateData.protocol = ['SSH', 'VNC', 'RDP'].includes(protocol) ? protocol : 'SSH';
+    }
     
     // Sanitize incoming tags updates (Finding #tags)
     if (tags !== undefined) {

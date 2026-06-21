@@ -98,6 +98,22 @@ export default function ProxmoxDashboard() {
     setIsModalOpen(true);
   };
 
+  const handleOpenNodeImportModal = (node: NodeResource) => {
+    setName(node.node);
+    setHost(node.ip || '');
+    setProtocol('SSH');
+    setPort(22);
+    setUsername('root');
+    setAuthType('PASSWORD');
+    setPassword('');
+    setPrivateKey('');
+    setPassphrase('');
+    setTags('proxmox,hypervisor');
+    setSaveError(null);
+    setSaveSuccess(false);
+    setIsModalOpen(true);
+  };
+
   const handleProtocolChange = (p: 'SSH' | 'VNC' | 'RDP') => {
     setProtocol(p);
     if (p === 'SSH') setPort(22);
@@ -279,6 +295,25 @@ export default function ProxmoxDashboard() {
                       </div>
                     </div>
                   )}
+
+                  {/* Connection Import Action for Host */}
+                  <div style={{
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid var(--border)',
+                    marginTop: 'auto'
+                  }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent toggling selection filter
+                        handleOpenNodeImportModal(node);
+                      }}
+                      style={{ width: '100%', justifyContent: 'center', gap: '0.4rem', padding: '0.35rem 0.5rem' }}
+                    >
+                      <Plus size={14} />
+                      <span style={{ fontSize: '0.8rem' }}>Add to Connections</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
