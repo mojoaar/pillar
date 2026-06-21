@@ -166,7 +166,7 @@ export default function AdminDashboard() {
             fontSize: '0.9rem'
           }}>
             <Cpu size={32} style={{ color: 'var(--border)', marginBottom: '0.5rem' }} />
-            <p>No active remote gateway SSH sessions currently running.</p>
+            <p>No active remote gateway sessions currently running.</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>

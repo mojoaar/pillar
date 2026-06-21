@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme, ThemeName, FontName } from '@/components/theme/ThemeProvider';
 import { getDefaultTimezone, DateFormatPreference } from '@/lib/datetime';
-import { User, Shield, Sliders, Upload, Check, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { User, Shield, Sliders, Upload, Check, AlertTriangle, ShieldCheck, Key, Trash2, Copy, Plus } from 'lucide-react';
 
 interface UserData {
   id: string;
@@ -19,7 +19,7 @@ interface SettingsTabsProps {
 }
 
 export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences' | 'apikeys'>('profile');
   const [user, setUser] = useState<UserData>(initialUser);
 
   // Form States - Profile
@@ -322,6 +322,21 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
         >
           <Sliders size={18} />
           <span>Preferences</span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('apikeys'); setError(null); setSuccess(null); }}
+          className="btn"
+          style={{
+            backgroundColor: activeTab === 'apikeys' ? 'var(--bg-tertiary)' : 'transparent',
+            borderBottom: activeTab === 'apikeys' ? '2px solid var(--accent)' : 'none',
+            borderRadius: 'var(--border-radius) var(--border-radius) 0 0',
+            color: activeTab === 'apikeys' ? 'var(--accent)' : 'var(--text-primary)',
+            padding: '0.75rem 1.25rem'
+          }}
+        >
+          <Key size={18} />
+          <span>API Keys</span>
         </button>
       </div>
 
@@ -772,6 +787,207 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
               Save Application Preferences
             </button>
           </form>
+        </div>
+      )}
+
+      {/* 4. API KEYS TAB */}
+      {activeTab === 'apikeys' && <ApiKeysPanel />}
+    </div>
+  );
+}
+
+function ApiKeysPanel() {
+  const [keys, setKeys] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [keyName, setKeyName] = useState('');
+  const [expiresDays, setExpiresDays] = useState('');
+  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const fetchKeys = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/keys');
+      const data = await res.json();
+      if (res.ok) setKeys(data.data || []);
+    } catch (e) {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchKeys(); }, []);
+
+  const handleCreateKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: keyName.trim(), 
+          expiresDays: expiresDays ? parseInt(expiresDays, 10) : 0 
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create.');
+      
+      setGeneratedToken(data.data.token);
+      setKeyName('');
+      setExpiresDays('');
+      setShowCreate(false);
+      fetchKeys();
+    } catch (err: any) {
+      setError(err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleRevoke = async (id: string) => {
+    if (!confirm('Revoke this API key permanently? All services using it will lose access immediately.')) return;
+    try {
+      const res = await fetch(`/api/profile/keys?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchKeys();
+        setSuccess('API key revoked.');
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (e) {}
+  };
+
+  const copyToken = () => {
+    if (generatedToken) {
+      navigator.clipboard.writeText(generatedToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    }
+  };
+
+  return (
+    <div className="card" style={{ maxWidth: '640px' }}>
+      <div className="flex-between" style={{ marginBottom: '1rem' }}>
+        <div>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Personal API Tokens</h3>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            Generate bearer tokens for programmatic scripting access. Tokens validate using SHA-256 hash matching.
+          </p>
+        </div>
+        <button className="btn btn-primary btn-sm" onClick={() => { setShowCreate(true); setGeneratedToken(null); setCopied(false); }}>
+          <Plus size={14} />
+          <span>New Token</span>
+        </button>
+      </div>
+
+      {success && (
+        <div style={{ backgroundColor: 'rgba(80,250,123,0.1)', border: '1px solid var(--success)', color: 'var(--success)', padding: '0.5rem', borderRadius: 'var(--border-radius)', fontSize: '0.8rem', marginBottom: '0.75rem' }}>{success}</div>
+      )}
+      {error && (
+        <div style={{ backgroundColor: 'rgba(255,85,85,0.1)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '0.5rem', borderRadius: 'var(--border-radius)', fontSize: '0.8rem', marginBottom: '0.75rem' }}>{error}</div>
+      )}
+
+      {generatedToken && (
+        <div style={{
+          backgroundColor: 'rgba(189,147,249,0.1)',
+          border: '1px solid var(--accent)',
+          borderRadius: 'var(--border-radius)',
+          padding: '1rem',
+          marginBottom: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Check size={16} style={{ color: 'var(--success)' }} />
+            <strong style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>Token Generated Successfully</strong>
+          </div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--danger)', marginBottom: '0.5rem' }}>
+            Store this token securely. You will not be able to see it again!
+          </p>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: '4px',
+            padding: '0.5rem'
+          }}>
+            <code style={{ flex: 1, fontSize: '0.75rem', wordBreak: 'break-all', color: 'var(--text-primary)', fontFamily: 'var(--terminal-font)' }}>
+              {generatedToken}
+            </code>
+            <button className="btn btn-secondary btn-sm" onClick={copyToken} style={{ flexShrink: 0 }}>
+              <Copy size={14} />
+              <span style={{ fontSize: '0.7rem' }}>{copied ? 'Copied!' : 'Copy'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading && keys.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading keys...</div>
+      ) : keys.length === 0 && !generatedToken ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+          No active API tokens. Generate one to enable scripting access.
+        </div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                <th style={{ padding: '0.5rem', fontWeight: 600, textAlign: 'left' }}>Name</th>
+                <th style={{ padding: '0.5rem', fontWeight: 600, textAlign: 'left' }}>Token Prefix</th>
+                <th style={{ padding: '0.5rem', fontWeight: 600, textAlign: 'left' }}>Created</th>
+                <th style={{ padding: '0.5rem', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keys.map((key) => (
+                <tr key={key.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>{key.name}</td>
+                  <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'var(--terminal-font)', fontSize: '0.75rem', color: 'var(--accent)' }}>{key.prefix}...</td>
+                  <td style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                    {new Date(key.createdAt).toLocaleDateString()}
+                  </td>
+                  <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleRevoke(key.id)} style={{ padding: '0.15rem 0.4rem' }}>
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {showCreate && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0,
+          width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.65)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1.5rem', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ fontSize: '1.25rem', color: 'var(--accent)', marginBottom: '0.25rem' }}>Generate API Token</h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Enter a descriptive name to identify this token later.</p>
+            <form onSubmit={handleCreateKey}>
+              <div className="form-group">
+                <label htmlFor="key-name">Token Name</label>
+                <input type="text" id="key-name" className="input-field" placeholder="e.g. HomeAssistant Sync" value={keyName} onChange={(e) => setKeyName(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label htmlFor="key-expires">Expiration (days, leave empty for no expiry)</label>
+                <input type="number" id="key-expires" className="input-field" placeholder="e.g. 365" min={1} value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Generating...' : 'Generate Token'}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

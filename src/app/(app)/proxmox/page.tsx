@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Monitor, RefreshCw, Power, Ban, Play, RefreshCw as RebootIcon, Activity, Server, AlertTriangle } from 'lucide-react';
+import { Monitor, RefreshCw, Power, Ban, Play, RefreshCw as RebootIcon, Activity, Server, AlertTriangle, Tv } from 'lucide-react';
 
 interface ProxmoxResource {
   id: string;
@@ -303,6 +303,15 @@ export default function ProxmoxDashboard() {
                   }}>
                     {isRunning ? (
                       <>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => window.open(`/proxmox/console?node=${encodeURIComponent(vm.node)}&vmid=${vm.vmid}&type=${vm.type}`, `pve-console-${vm.vmid}`, 'width=1024,height=768')}
+                          title="Open live VNC console to this instance"
+                          style={{ padding: '0.25rem 0.5rem' }}
+                        >
+                          <Tv size={12} />
+                          <span style={{ fontSize: '0.75rem' }}>Console</span>
+                        </button>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleVmAction(vm, 'reboot')}

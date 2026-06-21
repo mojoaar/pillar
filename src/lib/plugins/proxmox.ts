@@ -122,4 +122,17 @@ export class ProxmoxClient {
     const res = await httpsRequest(url, 'POST', this.getHeaders(), '{}', this.verifySsl);
     return res.data || res;
   }
+
+  /**
+   * Requests a VNC proxy ticket for a running VM, returning the port and ticket
+   * required to establish a secure WebSocket console connection.
+   */
+  async getVncProxyTicket(node: string, vmid: number, type: 'qemu' | 'lxc'): Promise<{ port: number; ticket: string }> {
+    const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/vncproxy`;
+    const res = await httpsRequest(url, 'POST', this.getHeaders(), JSON.stringify({ websocket: 1 }), this.verifySsl);
+    return {
+      port: res.data?.port || 5900,
+      ticket: res.data?.ticket || '',
+    };
+  }
 }

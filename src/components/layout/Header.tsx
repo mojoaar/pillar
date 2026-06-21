@@ -158,7 +158,7 @@ export default function Header({ user }: HeaderProps) {
           disabled={!isAdmin || sessionCount === 0}
         >
           <div className={styles.activeIndicator} />
-          <span>{sessionCount} SSH session{sessionCount !== 1 ? 's' : ''}</span>
+          <span>{sessionCount} session{sessionCount !== 1 ? 's' : ''}</span>
         </button>
 
         <div className={styles.controlGroup}>

@@ -90,6 +90,11 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Interactive web RDP client dynamically importing jsDelivr-served Guacamole resources
 
 ### Phase 11: Proxmox VE API Integration
-- [ ] Proxmox token authentication storage
-- [ ] Dashboard client reading PVE API nodes and VMs, displaying runtime graphs, and sending start/stop/reboot commands
-- [ ] Embed direct VM terminal consoles via Proxmox token-ticket integrations
+- [x] Proxmox token authentication storage
+- [x] Dashboard client reading PVE API nodes and VMs, displaying runtime graphs, and sending start/stop/reboot commands
+- [x] Embed direct VM terminal consoles via Proxmox token-ticket integrations
+
+### Phase 12: Advanced Automations & Diagnostics
+- [ ] 1-Click Saved Maintenance Scripts & Automation Engine
+- [ ] Live Latency Ping Diagnostics & TCP Host Port Status Checkers
+- [x] Personal API Keys Management & Token Bearer Authentication API

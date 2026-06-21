@@ -41,7 +41,7 @@ export default async function DashboardPage() {
           Welcome back, {session.user.name}!
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Monitor your terminal configurations and launch secure SSH bridges.
+          Monitor your saved connections and launch secure SSH, VNC, or RDP bridges.
         </p>
       </div>
 
