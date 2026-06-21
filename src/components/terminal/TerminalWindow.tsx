@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { useTheme } from '@/components/theme/ThemeProvider';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalWindowProps {
@@ -14,11 +15,48 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const { theme, font } = useTheme();
+
+  // ==========================================
+  // REAL-TIME TERMINAL RE-THEMING (Live Swapping)
+  // ==========================================
+  useEffect(() => {
+    if (!termRef.current) return;
+
+    // Read newly computed CSS variables on-the-fly from root layout
+    const styles = getComputedStyle(document.documentElement);
+    const bg = styles.getPropertyValue('--terminal-bg').trim() || '#1e1f29';
+    const fg = styles.getPropertyValue('--terminal-text').trim() || '#f8f8f2';
+    const cursor = styles.getPropertyValue('--terminal-cursor').trim() || '#ff79c6';
+    const selection = styles.getPropertyValue('--terminal-selection').trim() || '#44475a';
+    const fontFamily = styles.getPropertyValue('--terminal-font').trim() || 'monospace';
+
+    // Hot-swap options on the running xterm.js instance instantly without page reload!
+    termRef.current.options.theme = {
+      background: bg,
+      foreground: fg,
+      cursor,
+      selectionBackground: selection,
+    };
+    termRef.current.options.fontFamily = fontFamily;
+
+    // Refit the terminal canvas smoothly
+    setTimeout(() => {
+      try {
+        fitAddonRef.current?.fit();
+      } catch (err) {}
+    }, 50);
+  }, [theme, font]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 1. Read computed CSS variables dynamically from Root node to match visual themes perfectly!
+    // 1. Read custom scrollback lines from browser preferences (Finding #scrollback)
+    const savedScrollback = typeof window !== 'undefined' 
+      ? parseInt(localStorage.getItem('pillar-scrollback') || '1000', 10) 
+      : 1000;
+
+    // Read computed CSS variables dynamically from Root node
     const styles = getComputedStyle(document.documentElement);
     const bg = styles.getPropertyValue('--terminal-bg').trim() || '#1e1f29';
     const fg = styles.getPropertyValue('--terminal-text').trim() || '#f8f8f2';
@@ -27,12 +65,13 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
     const fontSize = parseInt(styles.getPropertyValue('--font-size-terminal').trim(), 10) || 14;
     const fontFamily = styles.getPropertyValue('--terminal-font').trim() || 'monospace';
 
-    // 2. Instantiate Terminal with calculated themes and options
+    // 2. Instantiate Terminal with dynamic scrollback history limits (Finding #scrollback)
     const term = new Terminal({
       cursorBlink: true,
       cursorStyle: 'block',
       fontFamily,
       fontSize,
+      scrollback: savedScrollback, // Set customizable scrollback viewport history lines
       theme: {
         background: bg,
         foreground: fg,
@@ -95,12 +134,17 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       }
     };
 
+    // WebSocketonerror events are empty objects {} by browser security specs (Finding #onerror)
+    // Trapping is handled cleanly inside onclose reasons where detail close strings are passed!
     socket.onerror = (err) => {
-      console.error('[Terminal-WS] Connection error:', err);
+      console.error('[Terminal-WS] Connection socket errored.');
     };
 
+    // Read details close reasons sent from gateway on handshakes failure (Finding #onerror)
     socket.onclose = (event) => {
-      term.write(`\r\n\x1b[31m[Pillar Gateway] Connection closed: ${event.reason || 'Remote node disconnected'}\x1b[0m\r\n`);
+      const reason = event.reason || 'Remote node disconnected';
+      const code = event.code;
+      term.write(`\r\n\x1b[31m[Pillar Gateway Error] Sockets closed (Code ${code}): ${reason}\x1b[0m\r\n`);
     };
 
     // 6. Responsive Resize Observer to notify SSH shell of layout updates
