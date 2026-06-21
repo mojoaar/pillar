@@ -238,7 +238,16 @@ app.prepare().then(() => {
             session.disconnectTimeout = undefined;
           }
 
-          // Add socket to active list
+          // Force-terminate any previous active "ghost" sockets for this session to prevent duplicate display lags (Finding #session-cleanup)
+          session.activeSockets.forEach((oldSocket) => {
+            if (oldSocket !== ws && (oldSocket.readyState === WebSocket.OPEN || oldSocket.readyState === WebSocket.CONNECTING)) {
+              console.log(`[WS-SSH] Closing duplicate active socket for persistent key: ${sessionKey}`);
+              oldSocket.close(1000, 'Re-established session in another tab');
+            }
+          });
+          session.activeSockets.clear();
+
+          // Add new socket to active list
           session.activeSockets.add(ws);
           
           // Expose session in active registry
