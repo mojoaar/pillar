@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import CommandPalette from '@/components/ui/CommandPalette';
 import styles from '@/components/layout/Layout.module.css';
 
 export default async function AppLayout({
@@ -32,6 +33,9 @@ export default async function AppLayout({
 
   return (
     <div className={styles.container}>
+      {/* Spotlight Command Palette (Global Keyboard shortcut: Cmd+K / Ctrl+K) */}
+      <CommandPalette />
+
       {/* Sidebar Navigation */}
       <Sidebar user={user} />
       
