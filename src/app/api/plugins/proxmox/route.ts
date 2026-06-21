@@ -28,8 +28,6 @@ export async function GET(request: NextRequest) {
     // Retrieve decrypted config
     const config = await getPluginConfig('proxmox-ve');
     if (!config) {
-      const record = await (await import('@/lib/db')).db.plugin.findUnique({ where: { id: 'proxmox-ve' } });
-      console.log('[Proxmox API] Plugin record:', record ? `enabled=${record.enabled}, config=${!!record.config}` : 'NOT FOUND');
       return NextResponse.json({ enabled: false, message: 'Proxmox VE integration is disabled or not configured.' });
     }
 
@@ -56,9 +54,16 @@ export async function GET(request: NextRequest) {
       client.getClusterResources()
     ]);
 
-    // Fetch real-time CPU/Memory for each node
+    // Fetch real-time CPU/Memory for each node (gracefully skip on permission errors)
     const nodeStatuses = await Promise.all(
-      nodes.map((n: any) => client.getNodeStatus(n.node).then((s: any) => ({ node: n.node, ...s })))
+      nodes.map((n: any) =>
+        client.getNodeStatus(n.node)
+          .then((s: any) => ({ node: n.node, ...s }))
+          .catch((err: any) => {
+            console.warn(`[Proxmox API] Skipping /nodes/${n.node}/status: ${err.message}`);
+            return { node: n.node };
+          })
+      )
     );
 
     // Merge status data into node objects
