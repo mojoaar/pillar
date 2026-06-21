@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Plus, Shield, Ban, CheckCircle, Trash2, Key, HelpCircle, X, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Plus, Shield, Ban, CheckCircle, Trash2, Key, HelpCircle, X, ShieldAlert, ArrowLeft } from 'lucide-react';
 
 interface UserModel {
   id: string;
@@ -171,7 +172,11 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Title */}
       <div className="flex-between">
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+          <Link href="/admin" className="btn btn-secondary btn-sm" title="Back to Admin Panel Overview">
+            <ArrowLeft size={14} />
+            <span>Back to Panel</span>
+          </Link>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Users style={{ color: 'var(--accent)' }} />
             <span>User Accounts Dashboard</span>

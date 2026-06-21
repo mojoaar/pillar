@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { History, Search, ArrowLeft, ArrowRight, Shield, RefreshCw } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
 
@@ -111,7 +112,11 @@ export default function AuditLogsViewer({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Title */}
       <div className="flex-between">
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+          <Link href="/admin" className="btn btn-secondary btn-sm" title="Back to Admin Panel Overview">
+            <ArrowLeft size={14} />
+            <span>Back to Panel</span>
+          </Link>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <History style={{ color: 'var(--accent)' }} />
             <span>Gateway Security Audit Trail</span>
