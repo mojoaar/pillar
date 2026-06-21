@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "./dist",
+    "target": "ES2022"
+  },
+  "include": ["server.ts", "src/lib/ssh.ts", "src/lib/crypto.ts"],
+  "exclude": ["node_modules", "src/app", "src/components"]
+}
