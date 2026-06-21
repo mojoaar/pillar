@@ -100,50 +100,63 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       }
     }, 100);
 
-    // 4. Establish WebSocket connection
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsHost = window.location.host;
-    
-    // Pass terminal initial dimensions inside query variables
-    const { cols, rows } = term;
-    const socket = new WebSocket(
-      `${protocol}//${wsHost}/api/ws/terminal?connectionId=${connectionId}&cols=${cols}&rows=${rows}`
-    );
-    
-    socketRef.current = socket;
-    socket.binaryType = 'arraybuffer';
+    // 4. Establish self-healing WebSocket connection
+    const isSocketClosed = { current: false };
 
-    term.write('\r\n\x1b[32m[Pillar Gateway] Connecting to remote host...\x1b[0m\r\n');
+    const connectSocket = () => {
+      isSocketClosed.current = false;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.host;
+      const { cols, rows } = term;
 
-    // 5. Connect up Duplex pipeline streams
-    socket.onopen = () => {
-      // Stream keystrokes from browser to remote server
-      term.onData((data) => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(data);
+      term.write('\r\n\x1b[32m[Pillar Gateway] Connecting to remote host...\x1b[0m\r\n');
+
+      const socket = new WebSocket(
+        `${protocol}//${wsHost}/api/ws/terminal?connectionId=${connectionId}&cols=${cols}&rows=${rows}`
+      );
+
+      socketRef.current = socket;
+      socket.binaryType = 'arraybuffer';
+
+      // Connect up Duplex pipeline streams
+      socket.onopen = () => {
+        term.write('\r\n\x1b[32m[Pillar Gateway] Connection established! Resuming session...\x1b[0m\r\n\r\n');
+      };
+
+      socket.onmessage = (event) => {
+        // Write raw host stdout back to xterm viewport
+        if (typeof event.data === 'string') {
+          term.write(event.data);
+        } else {
+          term.write(new Uint8Array(event.data));
         }
-      });
+      };
+
+      socket.onerror = (err) => {
+        console.error('[Terminal-WS] Connection socket errored.');
+      };
+
+      // Read details close reasons sent from gateway on handshakes failure (Finding #onerror)
+      socket.onclose = (event) => {
+        const reason = event.reason || 'Remote node disconnected';
+        const code = event.code;
+        isSocketClosed.current = true;
+        term.write(`\r\n\x1b[31m[Pillar Gateway Error] Sockets closed (Code ${code}): ${reason}\x1b[0m\r\n`);
+        term.write('\r\n\x1b[33m[Pillar Gateway] Press ANY key to attempt reconnection...\x1b[0m\r\n');
+      };
     };
 
-    socket.onmessage = (event) => {
-      // Write raw host stdout back to xterm viewport
-      if (typeof event.data === 'string') {
-        term.write(event.data);
-      } else {
-        term.write(new Uint8Array(event.data));
+    // Instantiate initial connection
+    connectSocket();
+
+    // Stream keystrokes from browser to remote server & trigger reconnects on close (Finding #self-heal)
+    const onDataDisposable = term.onData((data) => {
+      if (isSocketClosed.current) {
+        connectSocket();
+      } else if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(data);
       }
-    };
-
-    socket.onerror = (err) => {
-      console.error('[Terminal-WS] Connection socket errored.');
-    };
-
-    // Read details close reasons sent from gateway on handshakes failure (Finding #onerror)
-    socket.onclose = (event) => {
-      const reason = event.reason || 'Remote node disconnected';
-      const code = event.code;
-      term.write(`\r\n\x1b[31m[Pillar Gateway Error] Sockets closed (Code ${code}): ${reason}\x1b[0m\r\n`);
-    };
+    });
 
     // ==========================================
     // PREMIUM COPY/PASTE INTERACTIVITY ENGINE (Finding #copypaste)
@@ -212,8 +225,9 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       if (containerRef.current) {
         containerRef.current.removeEventListener('paste', handlePasteEvent);
       }
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-        socket.close();
+      onDataDisposable.dispose();
+      if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
+        socketRef.current.close();
       }
       term.dispose();
     };

@@ -229,91 +229,102 @@ app.prepare().then(() => {
       // CASE A: SESSION ALREADY RUNNING (RESUME)
       // ==========================================
       if (session) {
-        console.log(`[WS-SSH] Resuming active persistent SSH session: ${sessionKey}`);
-        
-        // Cancel pending disconnect timeout
-        if (session.disconnectTimeout) {
-          clearTimeout(session.disconnectTimeout);
-          session.disconnectTimeout = undefined;
-        }
-
-        // Add socket to active list
-        session.activeSockets.add(ws);
-        
-        // Expose session in active registry
-        activeSessions.set(sessionId, {
-          ws,
-          username: decodedUser.email || 'unknown',
-          host: connection.host,
-          startedAt: new Date(),
-          connectionId: connection.id,
-          protocol: 'SSH',
-        });
-
-        // Write brief re-attach logs
-        ws.send('\r\n\x1b[32m[Pillar Gateway] Re-attaching to running terminal session...\x1b[0m\r\n');
-
-        // Dynamically refit to the user's current window size
-        if (session.shellStream) {
-          session.shellStream.setWindow(initialRows, initialCols, 0, 0);
-        }
-
-        // Set up the duplex bridge handlers
-        const dataHandler = (data: any) => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(data);
-          }
-        };
-
-        session.shellStream.on('data', dataHandler);
-        session.listeners.set(ws, dataHandler);
-
-        ws.on('message', (message) => {
-          const payload = message.toString();
-          if (payload.startsWith('{"type":"resize"')) {
-            try {
-              const parsed = JSON.parse(payload);
-              if (session && session.shellStream && parsed.cols && parsed.rows) {
-                session.shellStream.setWindow(parsed.rows, parsed.cols, 0, 0);
-              }
-            } catch (e) {}
-          } else {
-            if (session && session.shellStream) {
-              session.shellStream.write(message);
-            }
-          }
-        });
-
-        ws.on('close', async () => {
-          console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}.`);
+        try {
+          console.log(`[WS-SSH] Resuming active persistent SSH session: ${sessionKey}`);
           
-          if (session) {
-            // Clean up listeners for this socket
-            const handler = session.listeners.get(ws);
-            if (handler) {
-              session.shellStream.off('data', handler);
-              session.listeners.delete(ws);
-            }
-            session.activeSockets.delete(ws);
-            activeSessions.delete(sessionId);
-
-            // If no active browser tabs are connected to this SSH session, start the 5-minute persistent watchdog!
-            if (session.activeSockets.size === 0) {
-              console.log(`[WS-SSH] Session ${sessionKey} is idle. Starting 5-minute persistent watchdog.`);
-              
-              session.disconnectTimeout = setTimeout(() => {
-                console.log(`[WS-SSH] Watchdog elapsed. Terminating persistent idle SSH session: ${sessionKey}`);
-                if (session) {
-                  if (session.shellStream) session.shellStream.end();
-                  if (session.sshClient) session.sshClient.end();
-                  persistentSshSessions.delete(sessionKey);
-                }
-              }, 5 * 60 * 1000); // Keep terminal alive on the server for 5 minutes!
-            }
+          // Cancel pending disconnect timeout
+          if (session.disconnectTimeout) {
+            clearTimeout(session.disconnectTimeout);
+            session.disconnectTimeout = undefined;
           }
-        });
 
-        return;
+          // Add socket to active list
+          session.activeSockets.add(ws);
+          
+          // Expose session in active registry
+          activeSessions.set(sessionId, {
+            ws,
+            username: decodedUser.email || 'unknown',
+            host: connection.host,
+            startedAt: new Date(),
+            connectionId: connection.id,
+            protocol: 'SSH',
+          });
+
+          // Write brief re-attach logs
+          ws.send('\r\n\x1b[32m[Pillar Gateway] Re-attaching to running terminal session...\x1b[0m\r\n');
+
+          // Dynamically refit to the user's current window size
+          if (session.shellStream) {
+            session.shellStream.setWindow(initialRows, initialCols, 0, 0);
+          }
+
+          // Set up the duplex bridge handlers
+          const dataHandler = (data: any) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(data);
+            }
+          };
+
+          session.shellStream.on('data', dataHandler);
+          session.listeners.set(ws, dataHandler);
+
+          ws.on('message', (message) => {
+            const payload = message.toString();
+            if (payload.startsWith('{"type":"resize"')) {
+              try {
+                const parsed = JSON.parse(payload);
+                if (session && session.shellStream && parsed.cols && parsed.rows) {
+                  session.shellStream.setWindow(parsed.rows, parsed.cols, 0, 0);
+                }
+              } catch (e) {}
+            } else {
+              if (session && session.shellStream) {
+                session.shellStream.write(message);
+              }
+            }
+          });
+
+          ws.on('close', async () => {
+            console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}.`);
+            
+            if (session) {
+              // Clean up listeners for this socket
+              const handler = session.listeners.get(ws);
+              if (handler) {
+                session.shellStream.off('data', handler);
+                session.listeners.delete(ws);
+              }
+              session.activeSockets.delete(ws);
+              activeSessions.delete(sessionId);
+
+              // If no active browser tabs are connected to this SSH session, start the 5-minute persistent watchdog!
+              if (session.activeSockets.size === 0) {
+                console.log(`[WS-SSH] Session ${sessionKey} is idle. Starting 5-minute persistent watchdog.`);
+                
+                session.disconnectTimeout = setTimeout(() => {
+                  console.log(`[WS-SSH] Watchdog elapsed. Terminating persistent idle SSH session: ${sessionKey}`);
+                  if (session) {
+                    if (session.shellStream) session.shellStream.end();
+                    if (session.sshClient) session.sshClient.end();
+                    persistentSshSessions.delete(sessionKey);
+                  }
+                }, 5 * 60 * 1000); // Keep terminal alive on the server for 5 minutes!
+              }
+            }
+          });
+
+          return; // Success, terminate handler
+        } catch (resumeErr: any) {
+          console.warn(`[WS-SSH] Failed to resume stale persistent session ${sessionKey}:`, resumeErr.message);
+          // Gracefully clean up the dead/stale session components
+          try {
+            if (session.shellStream) session.shellStream.end();
+            if (session.sshClient) session.sshClient.end();
+          } catch (e) {}
+          persistentSshSessions.delete(sessionKey);
+          // Fall through to CASE B below to establish a fresh, healthy SSH stream!
+        }
       }
 
       // ==========================================
