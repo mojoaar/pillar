@@ -957,12 +957,9 @@ app.prepare().then(() => {
 
       // Establish WebSocket to Proxmox VNC
       const WebSocketLib = await import('ws');
-      const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${encodeURIComponent(ticket)}`;
-
-      console.log(`[WS-PVE-VNC] Connecting to PVE WebSocket: ${pveWssUrl}`);
+      const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${ticket}`;
 
       pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
-        headers: { 'Cookie': `PVEAuthCookie=${ticket}` },
         rejectUnauthorized: verifySsl,
       });
 
