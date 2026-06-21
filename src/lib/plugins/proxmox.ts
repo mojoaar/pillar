@@ -133,6 +133,9 @@ export class ProxmoxClient {
    * Returns the first IPv4 address found, or null if the guest agent is not available.
    */
   async getVmIp(node: string, vmid: number, type: 'qemu' | 'lxc'): Promise<string | null> {
+    // LXC containers don't have a QEMU guest agent — IP must come from config
+    if (type === 'lxc') return null;
+
     try {
       // Proxmox agent API uses POST with command in body
       const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/agent`;

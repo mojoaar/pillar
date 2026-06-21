@@ -92,13 +92,15 @@ export async function GET(request: NextRequest) {
           // Extract bridge name as fallback
           const netInfo = (cfg.net0 || cfg.net1 || '');
           const bridgeMatch = netInfo.match(/bridge=([^,\s]+)/);
-          // Try to get actual IP via guest agent, fall back to bridge name
+          // For QEMU VMs: try guest agent; for LXCs: parse IP from config (net0=...ip=...)
           let ip: string | null = null;
-          try {
-            ip = await client.getVmIp(r.node, r.vmid, r.type);
-            console.log(`[Proxmox API] VM ${r.vmid} (${r.name}) IP: ${ip || 'not found'}`);
-          } catch (e: any) {
-            console.warn(`[Proxmox API] VM ${r.vmid} agent failed: ${e.message}`);
+          if (r.type === 'lxc') {
+            const ipMatch = netInfo.match(/ip=([^/\s,]+)/);
+            ip = ipMatch ? ipMatch[1] : null;
+          } else {
+            try {
+              ip = await client.getVmIp(r.node, r.vmid, r.type);
+            } catch {}
           }
           return { ...r, network: ip || (bridgeMatch ? bridgeMatch[1] : null) };
         } catch {
