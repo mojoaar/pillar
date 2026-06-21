@@ -21,7 +21,17 @@ interface SessionData {
   protocol: string;
 }
 
-const _registry = new Map<string, ActiveSession>();
+// Cache the registry map on globalThis to ensure server.ts and Next.js API compile isolates
+// share the exact same active sessions map registry in development mode (Finding #session-sync)
+const globalForSessions = globalThis as unknown as {
+  sessionRegistryMap: Map<string, ActiveSession> | undefined;
+};
+
+const _registry = globalForSessions.sessionRegistryMap ?? new Map<string, ActiveSession>();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForSessions.sessionRegistryMap = _registry;
+}
 
 export const sessionRegistry = {
   set(sessionId: string, session: ActiveSession) {

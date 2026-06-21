@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('sessionRegistry', () => {
-  // Reset module before each test to get a fresh registry
+  // Reset module and global registry map before each test to get a fresh registry
   beforeEach(async () => {
     vi.resetModules();
+    delete (globalThis as any).sessionRegistryMap;
   });
 
   it('count returns 0 for empty registry', async () => {

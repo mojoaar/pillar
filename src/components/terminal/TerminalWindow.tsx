@@ -133,7 +133,9 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       };
 
       socket.onerror = (err) => {
-        console.error('[Terminal-WS] Connection socket errored.');
+        if (!isSocketClosed.current) {
+          console.error('[Terminal-WS] Connection socket errored.');
+        }
       };
 
       // Read details close reasons sent from gateway on handshakes failure (Finding #onerror)
