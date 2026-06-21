@@ -46,6 +46,7 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
   const [hour12, setHour12] = useState(false);
   const [dateFormat, setDateFormat] = useState<DateFormatPreference>('EU');
   const [timezone, setTimezone] = useState(getDefaultTimezone());
+  const [timezones, setTimezones] = useState<string[]>(['UTC']);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,21 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
     if (savedClock) setHour12(savedClock === '12h');
     if (savedDate) setDateFormat(savedDate);
     if (savedTz) setTimezone(savedTz);
+
+    // Load all supported standard IANA timezones dynamically
+    try {
+      if (typeof Intl !== 'undefined' && 'supportedValuesOf' in Intl) {
+        setTimezones(Intl.supportedValuesOf('timeZone'));
+      } else {
+        setTimezones([
+          'UTC', 'Europe/Oslo', 'Europe/London', 'Europe/Paris', 
+          'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+          'Asia/Tokyo', 'Asia/Singapore', 'Australia/Sydney'
+        ]);
+      }
+    } catch {
+      setTimezones(['UTC']);
+    }
   }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -682,17 +698,11 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
                 onChange={(e) => setTimezone(e.target.value)}
                 style={{ cursor: 'pointer' }}
               >
-                <option value="UTC">UTC (Universal Coordinated Time)</option>
-                <option value="Europe/Oslo">Europe/Oslo (CET / CEST)</option>
-                <option value="Europe/London">Europe/London (GMT / BST)</option>
-                <option value="Europe/Paris">Europe/Paris (CET / CEST)</option>
-                <option value="America/New_York">America/New_York (EST / EDT)</option>
-                <option value="America/Chicago">America/Chicago (CST / CDT)</option>
-                <option value="America/Denver">America/Denver (MST / MDT)</option>
-                <option value="America/Los_Angeles">America/Los_Angeles (PST / PDT)</option>
-                <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
-                <option value="Asia/Singapore">Asia/Tokyo (SGT)</option>
-                <option value="Australia/Sydney">Australia/Sydney (AEST / AEDT)</option>
+                {timezones.map((tz) => (
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
+                ))}
               </select>
             </div>
 
