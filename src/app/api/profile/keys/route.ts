@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ data: { token: raw, prefix }, ok: true });
   } catch (err: any) {
-    console.error('[API Key Create] Failed:', err);
+    console.error('[API Key Create] Failed:', err.message);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ ok: true, message: 'API key revoked permanently.' });
   } catch (err: any) {
-    console.error('[API Key Delete] Failed:', err);
+    console.error('[API Key Delete] Failed:', err.message);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

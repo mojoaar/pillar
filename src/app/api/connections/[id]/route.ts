@@ -43,7 +43,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (name) updateData.name = name.trim();
     if (host) updateData.host = host.trim();
     if (domain !== undefined) updateData.domain = domain ? domain.trim() : null;
-    if (port) updateData.port = Number(port) || 22;
+    if (port !== undefined && port !== null) {
+      const parsedPort = Number(port);
+      if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+        return NextResponse.json({ error: 'Port must be between 1 and 65535.' }, { status: 400 });
+      }
+      updateData.port = parsedPort;
+    }
     if (protocol) updateData.protocol = protocol === 'VNC' ? 'VNC' : 'SSH';
     
     // Sanitize incoming tags updates (Finding #tags)

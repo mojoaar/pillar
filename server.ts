@@ -9,6 +9,7 @@ import { decrypt } from './src/lib/crypto';
 import { connectSSH } from './src/lib/ssh';
 import { writeAudit } from './src/lib/audit';
 import net from 'net';
+import { sessionRegistry } from './src/lib/sessions';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
@@ -97,10 +98,11 @@ app.prepare().then(() => {
   expressApp.set('trust proxy', 1);
   const server = http.createServer(expressApp);
 
-  // Validate NEXTAUTH_SECRET at startup
+  // Validate NEXTAUTH_SECRET at startup and cache for all WS handlers
   if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
     throw new Error('NEXTAUTH_SECRET must be at least 32 characters.');
   }
+  const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
   // ==========================================
   // HTTP SECURITY HEADERS MIDDLEWARE (Finding #3)
@@ -110,6 +112,8 @@ app.prepare().then(() => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     
     // Only apply strict Content Security Policy in production to prevent blocking
     // Next.js hot module reloading (HMR) and dev assets in development mode (Finding #csp-dev)
@@ -155,26 +159,7 @@ app.prepare().then(() => {
     listeners: Map<WebSocket, (data: any) => void>;
   }>();
 
-  // Session registry tracking active connections globally
-  const activeSessions = new Map<string, { 
-    ws: WebSocket; 
-    username: string; 
-    host: string; 
-    startedAt: Date;
-    connectionId: string;
-    protocol: string;
-  }>();
-
-  // Expose session count for administration panel / overview card
-  (globalThis as any).activeSSHCount = () => activeSessions.size;
-  (globalThis as any).getActiveSessions = () => Array.from(activeSessions.entries()).map(([id, s]) => ({
-    sessionId: id,
-    username: s.username,
-    host: s.host,
-    startedAt: s.startedAt,
-    connectionId: s.connectionId,
-    protocol: s.protocol,
-  }));
+  // activeSessions Map is now managed through sessionRegistry module (lib/sessions.ts)
 
   // ==========================================
   // 1. WEBSOCKET SSH HANDLER (Phase 4 & Finding #resumable)
@@ -212,7 +197,7 @@ app.prepare().then(() => {
       // Decode NextAuth JWT token
       const decodedUser = await decode({
         token: sessionToken,
-        secret: process.env.NEXTAUTH_SECRET!,
+        secret: NEXTAUTH_SECRET,
         salt: cookieName,
       });
 
@@ -278,7 +263,7 @@ app.prepare().then(() => {
           session.activeSockets.add(ws);
           
           // Expose session in active registry
-          activeSessions.set(sessionId, {
+          sessionRegistry.set(sessionId, {
             ws,
             username: decodedUser.email || 'unknown',
             host: connection.host,
@@ -332,7 +317,7 @@ app.prepare().then(() => {
                 session.listeners.delete(ws);
               }
               session.activeSockets.delete(ws);
-              activeSessions.delete(sessionId);
+              sessionRegistry.delete(sessionId);
 
               // If no active browser tabs are connected to this SSH session, start the 5-minute persistent watchdog!
               if (session.activeSockets.size === 0) {
@@ -413,7 +398,7 @@ app.prepare().then(() => {
         persistentSshSessions.set(sessionKey, sessionEntry);
 
         // Map active sessions
-        activeSessions.set(sessionId, {
+        sessionRegistry.set(sessionId, {
           ws,
           username: decodedUser.email || 'unknown',
           host: connection.host,
@@ -478,7 +463,7 @@ app.prepare().then(() => {
               activeSess.listeners.delete(ws);
             }
             activeSess.activeSockets.delete(ws);
-            activeSessions.delete(sessionId);
+            sessionRegistry.delete(sessionId);
 
             // Start 5-minute persistent watchdog if no active sockets remain
             if (activeSess.activeSockets.size === 0) {
@@ -500,20 +485,9 @@ app.prepare().then(() => {
       console.error('[WS-SSH] Initialization failed:', err.message);
       ws.send(`\r\n\x1b[31m[Pillar Gateway Error] Handshake failed: ${err.message}\x1b[0m\r\n`);
       ws.close(1008, err.message);
-      activeSessions.delete(sessionId);
+      sessionRegistry.delete(sessionId);
     }
   });
-
-  // Expose global termination helper to force close resumable sessions administratively (Finding #terminate)
-  (globalThis as any).terminateSession = (sessionId: string) => {
-    const session = activeSessions.get(sessionId);
-    if (session) {
-      session.ws.close(1000, 'Force closed by administrator');
-      activeSessions.delete(sessionId);
-      return true;
-    }
-    return false;
-  };
 
   // ==========================================
   // 2. WEBSOCKET VNC TO TCP PROXY (Phase 9)
@@ -548,7 +522,7 @@ app.prepare().then(() => {
 
       const decodedUser = await decode({
         token: sessionToken,
-        secret: process.env.NEXTAUTH_SECRET!,
+        secret: NEXTAUTH_SECRET,
         salt: cookieName,
       });
 
@@ -580,7 +554,7 @@ app.prepare().then(() => {
       console.log(`[WS-VNC] Auth Succeeded. User: ${decodedUser.email} -> VNC: ${connection.host}:${connection.port}`);
 
       // Log session
-      activeSessions.set(sessionId, {
+      sessionRegistry.set(sessionId, {
         ws,
         username: decodedUser.email || 'unknown',
         host: `${connection.host} (VNC)`,
@@ -636,7 +610,7 @@ app.prepare().then(() => {
       ws.on('close', async () => {
         console.log(`[WS-VNC] Web Client disconnected. Session: ${sessionId}`);
         if (tcpClient) tcpClient.destroy();
-        activeSessions.delete(sessionId);
+        sessionRegistry.delete(sessionId);
 
         await writeAudit(
           decodedUser.id as string,
@@ -651,7 +625,7 @@ app.prepare().then(() => {
       console.error('[WS-VNC] Handshake crashed:', err.message);
       ws.close(1008, err.message);
       if (tcpClient) tcpClient.destroy();
-      activeSessions.delete(sessionId);
+      sessionRegistry.delete(sessionId);
     }
   });
 
@@ -688,7 +662,7 @@ app.prepare().then(() => {
 
       const decodedUser = await decode({
         token: sessionToken,
-        secret: process.env.NEXTAUTH_SECRET!,
+        secret: NEXTAUTH_SECRET,
         salt: cookieName,
       });
 
@@ -720,7 +694,7 @@ app.prepare().then(() => {
       console.log(`[WS-RDP] Auth Succeeded. User: ${decodedUser.email} -> RDP: ${connection.host}:${connection.port}`);
 
       // Log session
-      activeSessions.set(sessionId, {
+      sessionRegistry.set(sessionId, {
         ws,
         username: decodedUser.email || 'unknown',
         host: `${connection.host} (RDP)`,
@@ -836,7 +810,7 @@ app.prepare().then(() => {
       ws.on('close', async () => {
         console.log(`[WS-RDP] Web Client disconnected from RDP. Session: ${sessionId}`);
         if (guacdClient) guacdClient.destroy();
-        activeSessions.delete(sessionId);
+        sessionRegistry.delete(sessionId);
 
         await writeAudit(
           decodedUser.id as string,
@@ -851,7 +825,7 @@ app.prepare().then(() => {
       console.error('[WS-RDP] Handshake crashed:', err.message);
       ws.close(1008, err.message);
       if (guacdClient) guacdClient.destroy();
-      activeSessions.delete(sessionId);
+      sessionRegistry.delete(sessionId);
     }
   });
 
@@ -881,7 +855,7 @@ app.prepare().then(() => {
 
       const decodedUser = await decode({
         token: sessionToken,
-        secret: process.env.NEXTAUTH_SECRET!,
+        secret: NEXTAUTH_SECRET,
         salt: cookieName,
       });
 
@@ -976,7 +950,7 @@ app.prepare().then(() => {
 
       pveWs.on('open', () => {
         console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel open. Session: ${sessionId}`);
-        activeSessions.set(sessionId, {
+        sessionRegistry.set(sessionId, {
           ws,
           username: decodedUser.email || 'unknown',
           host: `Proxmox VM#${vmid} @ ${node}`,
@@ -1013,7 +987,7 @@ app.prepare().then(() => {
         if (pveWs && pveWs.readyState === WebSocket.OPEN) {
           pveWs.close();
         }
-        activeSessions.delete(sessionId);
+        sessionRegistry.delete(sessionId);
       });
 
     } catch (err: any) {
@@ -1022,7 +996,7 @@ app.prepare().then(() => {
       if (pveWs) {
         try { pveWs.close(); } catch (e) {}
       }
-      activeSessions.delete(sessionId);
+      sessionRegistry.delete(sessionId);
     }
   });
 

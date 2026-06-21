@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { writeAudit } from '@/lib/audit';
+import { sessionRegistry } from '@/lib/sessions';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -26,13 +27,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Forbidden. Administrative scope required.' }, { status: 403 });
     }
 
-    // 2. Invoke the global session termination hook exposed by the Express ws server (Finding #terminate)
-    const terminateSession = (globalThis as any).terminateSession;
-    if (!terminateSession) {
-      return NextResponse.json({ error: 'Session gateway termination handler not initialized.' }, { status: 500 });
-    }
-
-    const success = terminateSession(id);
+    // 2. Terminate the active session via the shared session registry
+    const success = sessionRegistry.terminate(id);
     if (!success) {
       return NextResponse.json({ error: 'Active session not found or already closed.' }, { status: 404 });
     }

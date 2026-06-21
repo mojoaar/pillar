@@ -72,6 +72,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Field length exceeds maximum allowed characters.' }, { status: 400 });
     }
 
+    const parsedPort = Number(port);
+    if (isNaN(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+      return NextResponse.json({ error: 'Port must be a valid number between 1 and 65535.' }, { status: 400 });
+    }
+
     // Sanitize incoming tags: convert to clean comma-separated list of lower-case unique values (Finding #tags)
     let sanitizedTags: string | null = null;
     if (tags) {
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         host: host.trim(),
         domain: domain ? domain.trim() : null,
-        port: Number(port) || (protocol === 'VNC' ? 5900 : 22),
+        port: parsedPort,
         protocol: protocol === 'VNC' ? 'VNC' : 'SSH',
         tags: sanitizedTags,
         username: username.trim(),

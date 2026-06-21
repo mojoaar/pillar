@@ -22,6 +22,7 @@ function getEncryptionKey(): Buffer {
  * Returns a unified string format: "iv_hex:tag_hex:ciphertext_hex"
  */
 export function encrypt(text: string): string {
+  if (text == null) throw new Error('encrypt() requires a non-null string input');
   if (!text) return '';
   
   const key = getEncryptionKey();
@@ -40,6 +41,7 @@ export function encrypt(text: string): string {
  * Decrypts an AES-256-GCM encrypted string in the format "iv_hex:tag_hex:ciphertext_hex".
  */
 export function decrypt(encryptedText: string): string {
+  if (encryptedText == null) throw new Error('decrypt() requires a non-null string input');
   if (!encryptedText) return '';
   
   const parts = encryptedText.split(':');

@@ -10,6 +10,20 @@ import { writeAudit } from './audit';
 // Set TOTP drift tolerance to ±1 time step (30s) for clock skew
 authenticator.options = { window: 1 };
 
+// In-memory credential rate limiter: 5 attempts per email per 15 minutes
+const credentialAttempts = new Map<string, number[]>();
+function checkLoginRateLimit(email: string): boolean {
+  const now = Date.now();
+  const attempts = credentialAttempts.get(email) || [];
+  const recent = attempts.filter((t) => t > now - 15 * 60 * 1000);
+
+  if (recent.length >= 5) return false;
+
+  recent.push(now);
+  credentialAttempts.set(email, recent);
+  return true;
+}
+
 export const { auth, handlers, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -28,6 +42,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
         const totpCode = (credentials.totpCode as string | undefined)?.trim().toUpperCase();
+
+        // Rate limit credential attempts per email
+        if (!checkLoginRateLimit(email)) {
+          throw new Error('Too many login attempts. Please try again later.');
+        }
 
         // Fetch user from database
         const user = await db.user.findUnique({
@@ -80,8 +99,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             let decryptedBackupCodesStr: string;
             try {
               decryptedBackupCodesStr = decrypt(user.mfaBackupCodes);
-            } catch (err) {
-              console.error('Failed to decrypt user backup codes:', err);
+            } catch (err: any) {
+              console.error('Failed to decrypt user backup codes:', err.message);
               throw new Error('Invalid credentials');
             }
 
@@ -129,8 +148,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             let decryptedSecret: string;
             try {
               decryptedSecret = decrypt(user.mfaSecret);
-            } catch (err) {
-              console.error('Failed to decrypt user mfa secret:', err);
+            } catch (err: any) {
+              console.error('Failed to decrypt user mfa secret:', err.message);
               throw new Error('Invalid credentials');
             }
 

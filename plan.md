@@ -141,13 +141,13 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Add maxLength validation to connection name/host/username
 
 #### 🟢 Tier 4 — LOW Severity
-- [ ] Replace NEXTAUTH_SECRET! non-null assertions with runtime guards
-- [ ] Add rate limiting on credential attempts
-- [ ] Explicitly set TOTP window: 1
-- [ ] Throw on null/undefined input to encrypt()/decrypt()
-- [ ] Log only err.message in production
-- [ ] Clamp audit log pagination limit to max 100
-- [ ] Move globalThis helpers to module exports
-- [ ] Add TCP port range validation (1-65535)
-- [ ] Set explicit TOTP window/tolerance
-- [ ] Add Permissions-Policy + Cross-Origin-Resource-Policy headers
+- [x] Replace NEXTAUTH_SECRET! non-null assertions with runtime guards
+- [x] Add rate limiting on credential attempts (5 per email per 15 min)
+- [x] Explicitly set TOTP window: 1
+- [x] Throw on null/undefined input to encrypt()/decrypt()
+- [x] Log only err.message in production
+- [x] Clamp audit log pagination limit to max 100
+- [x] Move globalThis helpers to module exports (lib/sessions.ts)
+- [x] Add TCP port range validation (1-65535)
+- [x] Set explicit TOTP window/tolerance
+- [x] Add Permissions-Policy + Cross-Origin-Resource-Policy headers

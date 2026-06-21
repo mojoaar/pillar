@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import os from 'os';
+import { sessionRegistry } from '@/lib/sessions';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,9 +29,9 @@ export async function GET(request: NextRequest) {
     const freeMem = os.freemem();
     const uptime = os.uptime();
 
-    // 3. Query active WebSocket sessions registry from Global scope (Express WS attached registry)
-    const activeCount = (globalThis as any).activeSSHCount?.() || 0;
-    const activeSessions = (globalThis as any).getActiveSessions?.() || [];
+    // 3. Query active WebSocket sessions from shared session registry
+    const activeCount = sessionRegistry.count();
+    const sessionList = sessionRegistry.getAll();
 
     // 4. Return standard response shape
     return NextResponse.json({
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         totalMem,
         uptime,
         activeSessions: activeCount,
-        sessions: activeSessions,
+        sessions: sessionList,
       },
       ok: true,
     });

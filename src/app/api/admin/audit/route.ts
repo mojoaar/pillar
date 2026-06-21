@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // 2. Parse query parameters
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '1', 10);
-    const limit = parseInt(url.searchParams.get('limit') || '25', 10);
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '25', 10), 100);
     const userId = url.searchParams.get('userId') || undefined;
     const event = url.searchParams.get('event') || undefined;
     const ip = url.searchParams.get('ip') || undefined;
