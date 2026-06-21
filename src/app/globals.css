@@ -1,0 +1,408 @@
+@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400;1,700&family=Fira+Code:wght@300..700&family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Inconsolata:wght@200..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/* ==========================================
+   GLOBAL RESET & DEFAULTS
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+  overflow: hidden; /* App layouts will scroll internally */
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Form inputs font-family inherit requirement (Gotcha #20, #21) */
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+input, select, textarea {
+  border-radius: var(--border-radius, 6px);
+}
+
+/* Keyboard shortcut styling (Gotcha #16) */
+kbd {
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  font-family: var(--terminal-font);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  box-shadow: 0 1px 1px var(--shadow);
+}
+
+/* ==========================================
+   FONT DEFS (data-font selection)
+   ========================================== */
+[data-font="jetbrains-mono"] { --terminal-font: "JetBrains Mono", monospace; }
+[data-font="fira-code"] { --terminal-font: "Fira Code", monospace; }
+[data-font="source-code-pro"] { --terminal-font: "Source Code Pro", monospace; }
+[data-font="inconsolata"] { --terminal-font: "Inconsolata", monospace; }
+[data-font="roboto-mono"] { --terminal-font: "Roboto Mono", monospace; }
+[data-font="ubuntu-mono"] { --terminal-font: "Ubuntu Mono", monospace; }
+[data-font="ibm-plex-mono"] { --terminal-font: "IBM Plex Mono", monospace; }
+[data-font="anonymous-pro"] { --terminal-font: "Anonymous Pro", monospace; }
+[data-font="cascadia-code"] { --terminal-font: "Cascadia Code", "Cascadia Mono", var(--font-mono-system); }
+[data-font="sf-mono"] { --terminal-font: "SF Mono", "SFMono-Regular", Consolas, var(--font-mono-system); }
+
+:root {
+  --font-mono-system: ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --terminal-font: "JetBrains Mono", monospace;
+  --border-radius: 6px;
+  --transition-speed: 0.2s;
+}
+
+/* ==========================================
+   THEME PALETTES (8 configurations)
+   ========================================== */
+
+/* 1. DRACULA DARK (Default Dark) */
+html, [data-theme="dracula-dark"] {
+  --bg-primary: #282a36;
+  --bg-secondary: #1e1f29;
+  --bg-tertiary: #1b1c24;
+  --text-primary: #f8f8f2;
+  --text-secondary: #f1fa8c;
+  --text-muted: #6272a4;
+  --accent: #bd93f9;
+  --accent-hover: #ff79c6;
+  --border: #44475a;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --success: #50fa7b;
+  --warning: #ffb86c;
+  --danger: #ff5555;
+  --info: #8be9fd;
+
+  --terminal-bg: #1e1f29;
+  --terminal-text: #f8f8f2;
+  --terminal-cursor: #ff79c6;
+  --terminal-selection: #44475a;
+}
+
+/* 2. DRACULA LIGHT */
+[data-theme="dracula-light"] {
+  --bg-primary: #f8f8f2;
+  --bg-secondary: #eaeaea;
+  --bg-tertiary: #dfdfdf;
+  --text-primary: #282a36;
+  --text-secondary: #50fa7b;
+  --text-muted: #6272a4;
+  --accent: #bd93f9;
+  --accent-hover: #ff79c6;
+  --border: #dfdfdf;
+  --shadow: rgba(0, 0, 0, 0.1);
+  --success: #26b14c;
+  --warning: #f18c0e;
+  --danger: #d11a1a;
+  --info: #0ea7c6;
+
+  --terminal-bg: #dfdfdf;
+  --terminal-text: #282a36;
+  --terminal-cursor: #ff79c6;
+  --terminal-selection: #999;
+}
+
+/* 3. NORD DARK */
+[data-theme="nord-dark"] {
+  --bg-primary: #2e3440;
+  --bg-secondary: #242933;
+  --bg-tertiary: #1e222a;
+  --text-primary: #d8dee9;
+  --text-secondary: #eceff4;
+  --text-muted: #4c566a;
+  --accent: #88c0d0;
+  --accent-hover: #8fbcbb;
+  --border: #3b4252;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --success: #a3be8c;
+  --warning: #ebcb8b;
+  --danger: #bf616a;
+  --info: #81a1c1;
+
+  --terminal-bg: #242933;
+  --terminal-text: #d8dee9;
+  --terminal-cursor: #a3be8c;
+  --terminal-selection: #434c5e;
+}
+
+/* 4. NORD LIGHT */
+[data-theme="nord-light"] {
+  --bg-primary: #eceff4;
+  --bg-secondary: #e5e9f0;
+  --bg-tertiary: #d8dee9;
+  --text-primary: #2e3440;
+  --text-secondary: #3b4252;
+  --text-muted: #4c566a;
+  --accent: #5e81ac;
+  --accent-hover: #81a1c1;
+  --border: #d8dee9;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --success: #4c7c34;
+  --warning: #b78a2e;
+  --danger: #9c3c45;
+  --info: #4c709c;
+
+  --terminal-bg: #e5e9f0;
+  --terminal-text: #2e3440;
+  --terminal-cursor: #5e81ac;
+  --terminal-selection: #d8dee9;
+}
+
+/* 5. CYBERPUNK DARK */
+[data-theme="cyberpunk-dark"] {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #050505;
+  --bg-tertiary: #12011a;
+  --text-primary: #00fff5;
+  --text-secondary: #ff007f;
+  --text-muted: #3d1b54;
+  --accent: #ff007f;
+  --accent-hover: #00fff5;
+  --border: #ff007f;
+  --shadow: rgba(255, 0, 127, 0.2);
+  --success: #39ff14;
+  --warning: #ffea00;
+  --danger: #ff073a;
+  --info: #00ffff;
+
+  --terminal-bg: #050505;
+  --terminal-text: #00fff5;
+  --terminal-cursor: #ff007f;
+  --terminal-selection: #3d1b54;
+}
+
+/* 6. CYBERPUNK LIGHT */
+[data-theme="cyberpunk-light"] {
+  --bg-primary: #fff;
+  --bg-secondary: #fdf2f8;
+  --bg-tertiary: #fae8ff;
+  --text-primary: #4a044e;
+  --text-secondary: #db2777;
+  --text-muted: #c084fc;
+  --accent: #db2777;
+  --accent-hover: #701a75;
+  --border: #f472b6;
+  --shadow: rgba(219, 39, 119, 0.1);
+  --success: #16a34a;
+  --warning: #ca8a04;
+  --danger: #dc2626;
+  --info: #0284c7;
+
+  --terminal-bg: #fae8ff;
+  --terminal-text: #4a044e;
+  --terminal-cursor: #db2777;
+  --terminal-selection: #f5d0fe;
+}
+
+/* 7. GITHUB DARK */
+[data-theme="github-dark"] {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #010409;
+  --text-primary: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-muted: #484f58;
+  --accent: #238636;
+  --accent-hover: #2ea44f;
+  --border: #30363d;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --info: #58a6ff;
+
+  --terminal-bg: #161b22;
+  --terminal-text: #c9d1d9;
+  --terminal-cursor: #58a6ff;
+  --terminal-selection: #30363d;
+}
+
+/* 8. GITHUB LIGHT */
+[data-theme="github-light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #eaeef2;
+  --text-primary: #24292f;
+  --text-secondary: #57605a;
+  --text-muted: #6e7781;
+  --accent: #0969da;
+  --accent-hover: #0c57b4;
+  --border: #d0d7de;
+  --shadow: rgba(140, 149, 159, 0.15);
+  --success: #1a7f37;
+  --warning: #9a6700;
+  --danger: #cf222e;
+  --info: #0969da;
+
+  --terminal-bg: #f6f8fa;
+  --terminal-text: #24292f;
+  --terminal-cursor: #0969da;
+  --terminal-selection: #eaeef2;
+}
+
+
+/* ==========================================
+   GLOBAL COMPONENT UTILITIES (ZERO TAILWIND)
+   ========================================== */
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  gap: 0.5rem;
+  transition: all var(--transition-speed) ease;
+  user-select: none;
+}
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+.btn-primary {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+  opacity: 0.9;
+}
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  background-color: var(--bg-tertiary);
+}
+.btn-danger {
+  background-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover {
+  filter: brightness(1.1);
+}
+.btn-ghost {
+  color: var(--text-primary);
+}
+.btn-ghost:hover {
+  background-color: var(--bg-secondary);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Cards */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -1px var(--shadow);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.badge-success { background-color: rgba(80, 250, 123, 0.1); color: var(--success); border-color: var(--success); }
+.badge-warning { background-color: rgba(255, 184, 108, 0.1); color: var(--warning); border-color: var(--warning); }
+.badge-danger { background-color: rgba(255, 85, 85, 0.1); color: var(--danger); border-color: var(--danger); }
+
+/* Form inputs */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.input-field {
+  padding: 0.5rem 0.75rem;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  width: 100%;
+  transition: border-color var(--transition-speed) ease;
+}
+.input-field:focus {
+  border-color: var(--accent);
+}
+
+/* Grid helper */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+@media (max-width: 768px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+@media (max-width: 992px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Utilities */
+.text-center { text-align: center; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-align-center { display: flex; align-items: center; gap: 0.5rem; }
