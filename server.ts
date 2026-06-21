@@ -13,8 +13,8 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = 'localhost';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Initialize Next.js app instance with Turbopack support in dev (Finding #next-turbo)
-const app = next({ dev, hostname, port, turbopack: dev });
+// Initialize Next.js app instance (Webpack dev runner for absolute custom server stability)
+const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
 // Helper to parse cookies from header
