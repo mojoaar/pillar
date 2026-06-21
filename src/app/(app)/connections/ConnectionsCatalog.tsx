@@ -218,12 +218,18 @@ export default function ConnectionsCatalog({
 
   // Dynamic Tag Aggregation (Finding #tags)
   const allUniqueTags = Array.from(
-    new Set(connections.flatMap((c) => c.tags || []))
+    new Set([
+      ...connections.flatMap((c) => c.tags || []),
+      ...connections.map((c) => (c.protocol || 'SSH').toLowerCase())
+    ])
   ).sort();
 
   // Filter connections by active selected tag pill (Finding #tags-filter)
   const filteredConnections = selectedTag
-    ? connections.filter((c) => c.tags && c.tags.includes(selectedTag))
+    ? connections.filter((c) => 
+        (c.tags && c.tags.includes(selectedTag)) || 
+        (c.protocol || 'SSH').toLowerCase() === selectedTag.toLowerCase()
+      )
     : connections;
 
   return (
@@ -311,6 +317,10 @@ export default function ConnectionsCatalog({
         ) : (
           filteredConnections.map((conn) => {
             const isOwner = conn.userId === currentUserId;
+            const combinedTags = Array.from(new Set([
+              ...(conn.tags || []),
+              (conn.protocol || 'SSH').toLowerCase()
+            ]));
             return (
               <div key={conn.id} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
                 <div className="flex-between">
@@ -349,9 +359,9 @@ export default function ConnectionsCatalog({
                       <span style={{ fontFamily: 'var(--terminal-font)', color: 'var(--accent)', fontSize: '0.8rem' }}>{conn.domain}</span>
                     </div>
                   )}
-                  {conn.tags && conn.tags.length > 0 && (
+                  {combinedTags.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
-                      {conn.tags.map((tag) => (
+                      {combinedTags.map((tag) => (
                         <span
                           key={tag}
                           onClick={(e) => {
@@ -364,8 +374,8 @@ export default function ConnectionsCatalog({
                             padding: '0.1rem 0.4rem',
                             borderRadius: '4px',
                             backgroundColor: 'var(--bg-tertiary)',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text-secondary)',
+                            border: selectedTag === tag ? '1px solid var(--accent)' : '1px solid var(--border)',
+                            color: selectedTag === tag ? 'var(--accent)' : 'var(--text-secondary)',
                             cursor: 'pointer'
                           }}
                         >
