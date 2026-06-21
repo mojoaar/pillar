@@ -961,7 +961,10 @@ app.prepare().then(() => {
       
       const agent = new (await import('https')).Agent({ rejectUnauthorized: verifySsl });
 
-      pveWs = new WebSocketLib.WebSocket(pveWssUrl, { agent });
+      pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
+        agent,
+        headers: { Authorization: `PVEAPIToken=${config.apiToken}` },
+      });
 
       pveWs.on('open', () => {
         console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel open. Session: ${sessionId}`);
