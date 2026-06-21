@@ -17,11 +17,17 @@ export default async function AppLayout({
     redirect('/login');
   }
 
-  // Query the user's fresh database profile to get their live avatar URL (Finding #avatar-sync)
-  const dbUser = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { avatarUrl: true, allowedPlugins: true },
-  });
+  // Query the user's fresh database profile and plugin enabled states in parallel
+  const [dbUser, pvePlugin] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { avatarUrl: true, allowedPlugins: true },
+    }),
+    db.plugin.findUnique({
+      where: { id: 'proxmox-ve' },
+      select: { enabled: true },
+    })
+  ]);
 
   const user = {
     name: session.user.name || 'User',
@@ -30,6 +36,7 @@ export default async function AppLayout({
     role: (session.user as any).role || 'USER',
     avatarUrl: dbUser?.avatarUrl || null,
     allowedPlugins: dbUser?.allowedPlugins || null,
+    isPveEnabled: pvePlugin?.enabled || false,
   };
 
   return (

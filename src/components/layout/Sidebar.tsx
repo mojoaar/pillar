@@ -25,6 +25,7 @@ interface SidebarProps {
     role: string;
     avatarUrl: string | null;
     allowedPlugins?: string | null;
+    isPveEnabled?: boolean;
   };
 }
 
@@ -108,7 +109,7 @@ export default function Sidebar({ user }: SidebarProps) {
           <span className={styles.navText}>API Reference</span>
         </Link>
 
-        {(user.role === 'ADMIN' || user.allowedPlugins?.includes('proxmox-ve')) && (
+        {user.isPveEnabled && (user.role === 'ADMIN' || user.allowedPlugins?.includes('proxmox-ve')) && (
           <Link 
             href="/proxmox" 
             className={`${styles.navItem} ${isActive('/proxmox') ? styles.navItemActive : ''}`}
