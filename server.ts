@@ -273,6 +273,12 @@ app.prepare().then(() => {
           });
           session.activeSockets.clear();
 
+          // Clean up the old session ID from sessionRegistry before mapping the new resumed one
+          if ((session as any).sessionId) {
+            sessionRegistry.delete((session as any).sessionId);
+          }
+          (session as any).sessionId = sessionId;
+
           // Add new socket to active list
           session.activeSockets.add(ws);
           
@@ -324,7 +330,24 @@ app.prepare().then(() => {
             const reasonStr = reason?.toString() || '';
             const isPermanent = reasonStr === 'terminate';
             console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}. permanent=${isPermanent}`);
-            sessionRegistry.delete(sessionId);
+            
+            if (isPermanent) {
+              sessionRegistry.delete(sessionId);
+            } else {
+              // Update session in registry to show background state
+              const allSess = sessionRegistry.getAll();
+              const current = allSess.find((s) => s.sessionId === sessionId);
+              if (current) {
+                sessionRegistry.set(sessionId, {
+                  ws: null,
+                  username: current.username,
+                  host: `${current.host.replace(' (Background)', '')} (Background)`,
+                  startedAt: current.startedAt,
+                  connectionId: current.connectionId,
+                  protocol: current.protocol,
+                });
+              }
+            }
             
             if (session) {
               // Clean up listeners for this socket
@@ -352,6 +375,7 @@ app.prepare().then(() => {
                     if (session.sshClient) session.sshClient.end();
                   } catch (e) {}
                   persistentSshSessions.delete(sessionKey);
+                  sessionRegistry.delete(sessionId); // clean registry
                 }, 5 * 60 * 1000); // Keep terminal alive on the server for 5 minutes!
               }
             }
@@ -491,7 +515,24 @@ app.prepare().then(() => {
           const reasonStr = reason?.toString() || '';
           const isPermanent = reasonStr === 'terminate';
           console.log(`[WS-SSH] Web client disconnected from fresh session ID ${sessionId}. permanent=${isPermanent}`);
-          sessionRegistry.delete(sessionId);
+          
+          if (isPermanent) {
+            sessionRegistry.delete(sessionId);
+          } else {
+            // Update session in registry to show background state
+            const allSess = sessionRegistry.getAll();
+            const current = allSess.find((s) => s.sessionId === sessionId);
+            if (current) {
+              sessionRegistry.set(sessionId, {
+                ws: null,
+                username: current.username,
+                host: `${current.host.replace(' (Background)', '')} (Background)`,
+                startedAt: current.startedAt,
+                connectionId: current.connectionId,
+                protocol: 'SSH',
+              });
+            }
+          }
           
           const activeSess = persistentSshSessions.get(sessionKey);
           if (activeSess) {
@@ -515,6 +556,7 @@ app.prepare().then(() => {
                 try { shellStream.end(); } catch (e) {}
                 try { sshClient.end(); } catch (e) {}
                 persistentSshSessions.delete(sessionKey);
+                sessionRegistry.delete(sessionId); // clean registry
               }, 5 * 60 * 1000);
             }
           }
