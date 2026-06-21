@@ -58,7 +58,10 @@ export async function GET(request: NextRequest) {
     const nodeStatuses = await Promise.all(
       nodes.map((n: any) =>
         client.getNodeStatus(n.node)
-          .then((s: any) => ({ node: n.node, ...s }))
+          .then((s: any) => {
+            console.log(`[Proxmox API] ${n.node} status sample:`, JSON.stringify({ cpu: s.cpu, cpuinfo: s.cpuinfo, memory: s.memory }));
+            return { node: n.node, ...s };
+          })
           .catch((err: any) => {
             console.warn(`[Proxmox API] Skipping /nodes/${n.node}/status: ${err.message}`);
             return { node: n.node };
@@ -77,6 +80,8 @@ export async function GET(request: NextRequest) {
         maxmem: stats.memory?.total ?? n.maxmem,
       };
     });
+
+    console.log('[Proxmox API] First enriched node:', JSON.stringify(enrichedNodes[0]));
 
     return NextResponse.json({
       enabled: true,
