@@ -89,9 +89,10 @@ export async function GET(request: NextRequest) {
       vmsAndContainers.map(async (r: any) => {
         try {
           const cfg = await client.getVmConfig(r.node, r.vmid, r.type);
-          // Extract first IP-like value from config (net0 typically has bridge info)
-          const netInfo = cfg.net0 || cfg.net1 || '';
-          return { ...r, network: netInfo || null };
+          // Extract bridge name from net0 (e.g., "virtio=XX,bridge=vmbr0,firewall=1")
+          const netInfo = (cfg.net0 || cfg.net1 || '');
+          const bridgeMatch = netInfo.match(/bridge=([^,\s]+)/);
+          return { ...r, network: bridgeMatch ? bridgeMatch[1] : null };
         } catch {
           return r;
         }
