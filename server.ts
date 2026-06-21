@@ -816,7 +816,6 @@ app.prepare().then(() => {
 
       // Initialize state variables for Guacamole Handshake Protocol negotiation
       let handshook = false;
-      const browserMessageBuffer: string[] = [];
 
       guacdClient.on('connect', () => {
         // Send initial protocol select instruction
@@ -872,16 +871,6 @@ app.prepare().then(() => {
             if (guacdClient && !guacdClient.destroyed) {
               guacdClient.write(inst);
               handshook = true;
-
-              // Flush any buffered browser messages immediately (like size or capabilities)
-              if (browserMessageBuffer.length > 0) {
-                browserMessageBuffer.forEach((msg) => {
-                  if (guacdClient && !guacdClient.destroyed) {
-                    guacdClient.write(msg);
-                  }
-                });
-                browserMessageBuffer.length = 0;
-              }
             }
           }
         } else {
@@ -892,15 +881,10 @@ app.prepare().then(() => {
         }
       });
 
-      // Forward WebSocket inputs back to the guacd TCP Client (buffer if handshake is in progress)
+      // Forward WebSocket inputs back to the guacd TCP Client immediately to preserve handshake messages like size
       ws.on('message', (message) => {
-        const msgStr = message.toString();
-        if (handshook) {
-          if (guacdClient && !guacdClient.destroyed) {
-            guacdClient.write(msgStr);
-          }
-        } else {
-          browserMessageBuffer.push(msgStr);
+        if (guacdClient && !guacdClient.destroyed) {
+          guacdClient.write(message.toString());
         }
       });
 
