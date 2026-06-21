@@ -19,16 +19,20 @@ function httpsRequest(
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(url);
-    const options: https.RequestOptions = {
+    const opts: https.RequestOptions & { headers: Record<string, string> } = {
       hostname: parsedUrl.hostname,
       port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
       path: parsedUrl.pathname + parsedUrl.search,
       method,
-      headers,
+      headers: { ...headers },
       rejectUnauthorized: verifySsl,
     };
 
-    const req = https.request(options, (res) => {
+    if (postData) {
+      opts.headers['Content-Length'] = String(Buffer.byteLength(postData));
+    }
+
+    const req = https.request(opts, (res) => {
       let data = '';
 
       res.on('data', (chunk) => {

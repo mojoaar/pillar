@@ -918,6 +918,7 @@ app.prepare().then(() => {
       const httpsModule = await import('https');
       const ticketRes = await new Promise<any>((resolve, reject) => {
         const ticketUrl = new URL(`${config.apiUrl}/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncproxy`);
+        const postBody = JSON.stringify({ websocket: 1 });
         const options: any = {
           hostname: ticketUrl.hostname,
           port: ticketUrl.port || 443,
@@ -926,6 +927,7 @@ app.prepare().then(() => {
           headers: {
             'Authorization': `PVEAPIToken=${config.apiToken}`,
             'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postBody),
           },
           rejectUnauthorized: verifySsl,
         };
@@ -942,7 +944,7 @@ app.prepare().then(() => {
           });
         });
         req.on('error', reject);
-        req.write(JSON.stringify({ websocket: 1 }));
+        req.write(postBody);
         req.end();
       });
 
