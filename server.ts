@@ -599,7 +599,7 @@ app.prepare().then(() => {
   });
 
   // Pass all standard requests (HTML pages, APIs, statics) directly to Next.js handler (Catch-all middleware)
-  expressApp.all('*', (req, res) => {
+  expressApp.use((req, res) => {
     const parsedUrl = parse(req.url, true);
     return handle(req, res, parsedUrl);
   });
