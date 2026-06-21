@@ -13,12 +13,17 @@ Pillar is a highly secure, beautiful, self-hosted web-based remote-access gatewa
 
 - **Web SSH Terminal**: Fully responsive, low-latency terminal sessions backed by `@xterm/xterm` canvas rendering and real-time WebSocket communication.
 - **Web VNC Remote Desktop**: Seamless HTML5 browser remote desktop console streams utilizing `@novnc/novnc` canvas renders.
-- **Advanced Multi-Theming & Fonts**: Choose from 8 visual themes (Dracula, Nord, Cyberpunk, and GitHub light & dark variations) and select from 10 popular monospace coding fonts, dynamically styled across the entire application interface!
-- **Dynamic Spotlight Search**: Trigger the global command search palette with `Cmd+K` (macOS) or `Ctrl+K` (Linux/Windows) to look up connection nodes, swap theme colors, or run navigations on-the-fly.
-- **Secrets Encryption at Rest**: Sensitive profile credentials (passwords, private keys, key passphrases, and MFA secrets) are encrypted at-rest using **AES-256-GCM** backed by a secure 32-byte key.
-- **Robust MFA Setup**: Integrated credential system with optional or mandatory TOTP Multi-Factor Authentication, including single-use **MFA backup recovery codes** and administrative overrides.
-- **Diagnostics & Auditing Dashboard**: View system utilization metrics, manage user accounts (CRUD, inline suspensions, and role changes), and browse permanent, paginated security audit log trails.
-- **Built-in Docs Portal & API Spec**: Read locally bundled guides and interactively test REST endpoints using our themed dynamic Swagger-style API explorer without leaving the gateway.
+- **Web RDP Remote Desktop**: Apache Guacamole-backed RDP gateway with zero-dependency protocol handshake and dynamic CDN-loaded client.
+- **Proxmox VE Integration**: Real-time cluster node monitoring, VM resource graphs, power lifecycle controls, and live noVNC console embedding.
+- **Extensible Plugins Framework**: Encrypted AES-256-GCM configuration storage. Enable/disable integrations globally from the Admin panel.
+- **Personal API Keys**: Generate `pil_live_` bearer tokens with HMAC-SHA256 hashing for programmatic scripting and CLI access.
+- **Advanced Multi-Theming & Fonts**: Choose from 8 visual themes (Dracula, Nord, Cyberpunk, and GitHub light & dark variations) and select from 10 popular monospace coding fonts.
+- **Dynamic Spotlight Search**: Trigger the global command search palette with `Cmd+K` (macOS) or `Ctrl+K` (Linux/Windows).
+- **Collapsible Sidebar**: Toggle the navigation sidebar via `Cmd/Ctrl+B` or the chevron button — state persisted across sessions.
+- **Secrets Encryption at Rest**: Sensitive profile credentials encrypted at-rest using **AES-256-GCM** backed by a secure 32-byte hex key.
+- **Robust MFA Setup**: TOTP multi-factor authentication with single-use backup recovery codes and administrative overrides.
+- **Diagnostics & Auditing Dashboard**: System metrics, user CRUD, inline suspensions, role changes, and paginated security audit logs.
+- **Built-in Docs Portal & API Spec**: Locally bundled guides and a dynamic Swagger-style API explorer at `/apidocs`.
 
 ---
 
@@ -78,20 +83,34 @@ Pillar is made possible by the incredible work of these open-source libraries, m
 ### [0.1.0] - 2026-06-21
 
 - **Core Scaffolding**: Initialized Next.js 16, SQLite schema structures, and custom Express upgrade handshaking tunnels.
-- **Unified Branding**: Standardized routing paths, logo labels, and created `admin@pillar.local` unified branding placeholders.
-- **Integrated Portals**: Coded the dynamic guides reader and dynamic interactive Swagger-style REST explorer.
+- **Unified Branding**: Standardized routing paths, logo labels, and branding placeholders.
+- **Integrated Portals**: Coded the dynamic guides reader and interactive Swagger-style REST explorer at `/apidocs`.
+- **Web VNC Remote Desktop**: Integrated `@novnc/novnc` with raw WebSocket-to-TCP RFB proxy bridge.
+- **Web RDP Remote Desktop**: Added Apache Guacamole (`guacd`) Docker sidecar with zero-dependency protocol handshake in `server.ts`.
+- **Proxmox VE Plugin**: Extensible plugins framework with encrypted config storage; real-time cluster monitoring, VM power lifecycle controls, and embedded noVNC consoles.
+- **Personal API Keys**: `pil_live_` bearer tokens with HMAC-SHA256 hashing, expiration, and instant revocation.
+- **Collapsible Sidebar**: `Cmd/Ctrl+B` shortcut plus toggle button; state persisted in localStorage.
+- **Optional Domain Name**: Added display-only domain field to connection profiles.
+- **Favicon & SEO**: Dracula-themed SVG/ICO/PNG favicons covering all major browsers; Open Graph, Twitter Card, sitemap.xml, and robots.txt.
+- **Deployment Guide**: Production guide for Proxmox LXC + Nginx Proxy Manager + Let's Encrypt SSL.
+- **Test Suite**: 122 vitest tests across 15 files covering crypto, sessions, auth-helper, API routes, and frontend components.
 - **Security Hardening**:
-  - Implemented AES-256-GCM cryptography at-rest.
-  - Implemented BOLA scope validation checks (preventing unauthorized connection loading).
-  - Added 8 single-use secure **MFA backup recovery codes** (`XXXX-XXXX`) during TOTP configuration.
-  - Added sliding-window rate limiters on sensitive auth endpoints.
-  - Added HTTP CSP security headers and 5-second connection watchdog timeouts.
-  - Prevented storage leaks by deleting orphaned older avatar images.
-  - Restored HMR development upgrades by bypassing non-terminal upgrade paths.
-- **Interactive Command Palette**: Added Spotlight/Raycast search overlay (`Cmd+K` / `Ctrl+K`) supporting connections catalog searches, navigation actions, visual theme swappers, and font mappers.
-- **Real-Time Canvas Re-Theming**: Coded live computed-styles syncing on active terminals upon visual scheme toggles.
-- **Persistent Resumable Sockets**: Added global SSH session registry and 5-minute watchdog timers (terminal persists in memory when navigating away).
-- **Deployment & Scaling**: Designed Stage-2 non-privileged multi-stage `Dockerfile`, compose volumes, and bare-metal systemd templates.
+  - AES-256-GCM encryption at-rest with hex-only key enforcement.
+  - BOLA scope validation on all connection and profile routes.
+  - 8 single-use MFA backup recovery codes with optimistic locking.
+  - Sliding-window rate limiters on auth endpoints with periodic sweep.
+  - CSP, HSTS, Permissions-Policy, and Cross-Origin-Resource-Policy headers.
+  - Origin validation on all WebSocket upgrades (CSWSH protection).
+  - SRI integrity hashes on CDN-loaded scripts.
+  - Credential attempt rate limiting (5 per email per 15 min).
+  - Unified "Invalid credentials" error messages to prevent user enumeration.
+  - WebSocket pre-upgrade authentication (401 rejected before handshake).
+  - `globalThis` helpers migrated to `sessionRegistry` module exports.
+  - TCP port range and connection field length validation.
+- **Interactive Command Palette**: Spotlight/Raycast search overlay (`Cmd+K` / `Ctrl+K`) with connections, themes, fonts, and navigation.
+- **Real-Time Canvas Re-Theming**: Live computed-styles syncing on active terminals upon visual scheme toggles.
+- **Persistent Resumable Sockets**: SSH session registry with 5-minute watchdog timers and self-healing reconnect-on-any-key.
+- **Deployment & Scaling**: Multi-stage non-privileged `Dockerfile`, compose volumes, bare-metal systemd templates.
 
 ---
 

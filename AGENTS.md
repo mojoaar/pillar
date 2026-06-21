@@ -11,6 +11,10 @@ This project contains specific architecture patterns and development directives.
 - **Check code quality**: `npm run lint`
 - **Sync database**: `npm run db:push`
 - **Start WebSocket / Web Gateway**: `npm start` (Runs custom `server.ts`)
+- **Run all tests**: `npm test` (Vitest — 122 tests across 15 files)
+- **Test watch mode**: `npm run test:watch`
+- **Test with coverage**: `npm run test:coverage`
+- **Legacy integration test**: `npm run test:integration` (Runs `test-ssh.ts`)
 
 ---
 
@@ -73,6 +77,17 @@ This project utilizes Next.js **CSS Modules** (`*.module.css`) for UI scoping an
 
 ## 🏷️ Releases and Tags Policy
 - **NEVER** run `git tag` or call GitHub release APIs autonomously. Bumping version strings in repository documents is encouraged, but committing tags remains the human owner's action.
+
+---
+
+## 📝 Development Gotchas
+
+### Gotcha #url-parse: `url.parse()` is deprecated but required for Next.js
+- Node.js 26 deprecates `url.parse()` in favor of the WHATWG `new URL()` API.
+- All WebSocket handlers in `server.ts` use a custom `parseUrl()` helper based on `new URL()`.
+- The Next.js catch-all handler (`expressApp.use((req, res) => handle(req, res, parsedUrl))`) **must** use the deprecated `url.parse()` because Next.js's `getRequestHandler` expects `NextUrlWithParsedQuery`.
+- DO NOT replace the `parse()` call on the catch-all middleware line — it will break Next.js routing.
+- The deprecation warning for this single remaining usage is suppressed via import comment.
 
 ---
 

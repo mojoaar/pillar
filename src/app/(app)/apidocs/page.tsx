@@ -269,6 +269,124 @@ const apiSpecs: APIEndpoint[] = [
       ok: true,
       message: 'Active session terminated successfully.'
     }
+  },
+  {
+    id: 'list-users',
+    group: 'Admin',
+    method: 'GET',
+    path: '/api/admin/users',
+    desc: 'Fetch all registered local user accounts. Returns email, username, name, role, MFA status, suspension state, and allowed plugins. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    resBody: {
+      data: [{ id: 'uuid', email: 'user@homelab.local', username: 'john', role: 'USER', mfaEnabled: true, isSuspended: false, allowedPlugins: 'proxmox-ve' }],
+      ok: true
+    }
+  },
+  {
+    id: 'create-user',
+    group: 'Admin',
+    method: 'POST',
+    path: '/api/admin/users',
+    desc: 'Register a new local user account. Accepts name, email, username, password (min 8 chars), and role (ADMIN or USER). Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    reqBody: { name: 'Sarah K.', email: 'sarah@homelab.local', username: 'sarah', password: 'securepassword', role: 'USER' },
+    resBody: { data: { id: 'uuid', email: 'sarah@homelab.local', username: 'sarah', role: 'USER' }, ok: true }
+  },
+  {
+    id: 'update-user',
+    group: 'Admin',
+    method: 'PATCH',
+    path: '/api/admin/users/[id]',
+    desc: 'Modify user account settings. Supports role changes, suspension toggles, MFA overrides (disabling TOTP), and plugin access grants via allowedPlugins. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    reqBody: { role: 'ADMIN', isSuspended: false, resetMfa: true, allowedPlugins: 'proxmox-ve' },
+    resBody: { data: { id: 'uuid', role: 'ADMIN', isSuspended: false, mfaEnabled: false }, ok: true }
+  },
+  {
+    id: 'delete-user',
+    group: 'Admin',
+    method: 'DELETE',
+    path: '/api/admin/users/[id]',
+    desc: 'Permanently delete a user account. Cannot delete your own admin account. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    resBody: { ok: true, message: 'User account removed permanently.' }
+  },
+  {
+    id: 'manage-plugins',
+    group: 'Admin',
+    method: 'GET',
+    path: '/api/admin/plugins',
+    desc: 'List all available plugin integrations with their current enabled states and sanitized configuration fields (passwords masked). Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    resBody: { data: [{ id: 'proxmox-ve', name: 'Proxmox VE', enabled: true, config: { apiUrl: 'https://pve.local', apiToken: '••••••••', verifySsl: 'false' } }], ok: true }
+  },
+  {
+    id: 'configure-plugin',
+    group: 'Admin',
+    method: 'PATCH',
+    path: '/api/admin/plugins',
+    desc: 'Update a plugin configuration and enabled toggle. Config values are encrypted with AES-256-GCM before storage. Password fields are detected via mask matching to retain existing values. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    reqBody: { id: 'proxmox-ve', enabled: true, config: { apiUrl: 'https://pve.local:8006/api2/json', apiToken: 'root@pve!token=secret', verifySsl: 'false' } },
+    resBody: { message: 'Plugin configured successfully', ok: true }
+  },
+  {
+    id: 'audit-logs',
+    group: 'Admin',
+    method: 'GET',
+    path: '/api/admin/audit',
+    desc: 'Fetch paginated, filterable security audit event logs. Supports filtering by userId, event type, and IP. Paginated with limit (max 100) and page offset. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    queryParams: { page: '1', limit: '25', userId: 'optional', event: 'optional', ip: 'optional' },
+    resBody: { data: [{ id: 'uuid', userId: 'uuid', event: 'Login Succeeded', ip: '192.168.1.1', meta: '{}', createdAt: '2026-06-21T10:00:00Z' }], total: 42, ok: true }
+  },
+  {
+    id: 'api-keys-list',
+    group: 'Profiles',
+    method: 'GET',
+    path: '/api/profile/keys',
+    desc: 'List all active personal API tokens for the authenticated user. Returns token name, prefix, creation date, and expiration — never the raw key or hash.',
+    auth: 'USER',
+    resBody: { data: [{ id: 'uuid', name: 'HomeAssistant', prefix: 'pil_live_ab', createdAt: '2026-06-21T10:00:00Z', expiresAt: null }], ok: true }
+  },
+  {
+    id: 'api-keys-create',
+    group: 'Profiles',
+    method: 'POST',
+    path: '/api/profile/keys',
+    desc: 'Generate a new personal API token. The raw token (pil_live_...) is returned exactly once — never stored in plaintext. Hashing uses HMAC-SHA256 with a server pepper.',
+    auth: 'USER',
+    reqBody: { name: 'HomeAssistant', expiresDays: 365 },
+    resBody: { data: { token: 'pil_live_xxxxxxxx', prefix: 'pil_live_ab' }, ok: true }
+  },
+  {
+    id: 'api-keys-delete',
+    group: 'Profiles',
+    method: 'DELETE',
+    path: '/api/profile/keys',
+    desc: 'Revoke and permanently delete an API token. The token immediately loses all access. Returns the same error message whether the key exists or belongs to another user — preventing enumeration.',
+    auth: 'USER',
+    queryParams: { id: 'key-uuid' },
+    resBody: { ok: true, message: 'API key revoked permanently.' }
+  },
+  {
+    id: 'proxmox-status',
+    group: 'Connections',
+    method: 'GET',
+    path: '/api/plugins/proxmox',
+    desc: 'Fetch real-time Proxmox VE cluster status. Returns node health metrics, running VMs (QEMU), and containers (LXC) with CPU, RAM, and uptime data. Requires the Proxmox VE plugin to be enabled and the user authorized.',
+    auth: 'USER',
+    resBody: { enabled: true, connected: true, data: { nodes: [{ node: 'pve', status: 'online', cpu: 0.15, mem: 8589934592 }], resources: [{ id: 'qemu/100', name: 'web-server', type: 'qemu', status: 'running', cpu: 0.04, mem: 2147483648 }] }, ok: true }
+  },
+  {
+    id: 'proxmox-lifecycle',
+    group: 'Connections',
+    method: 'POST',
+    path: '/api/plugins/proxmox',
+    desc: 'Dispatch power lifecycle commands (start, stop, shutdown, reboot, suspend) to a Proxmox VM or container. Requires the Proxmox VE plugin enabled and user authorized.',
+    auth: 'USER',
+    reqBody: { node: 'pve', vmid: 100, type: 'qemu', action: 'reboot' },
+    resBody: { data: {}, message: 'Lifecycle action reboot dispatched successfully.', ok: true }
   }
 ];
 
