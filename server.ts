@@ -858,9 +858,14 @@ app.prepare().then(() => {
               return ''; // all other parameters blank
             });
 
+            console.log('[WS-RDP] Received guacd argsList:', argsList);
+            console.log('[WS-RDP] Compiled connect values length:', argValues.length);
+            const inst = guacInstruction('connect', ...argValues);
+            console.log('[WS-RDP] Writing connect instruction (first 150 chars):', inst.substring(0, 150));
+
             // Send standard connect instruction to finalize handshake
             if (guacdClient && !guacdClient.destroyed) {
-              guacdClient.write(guacInstruction('connect', ...argValues));
+              guacdClient.write(inst);
               handshook = true;
             }
           }
