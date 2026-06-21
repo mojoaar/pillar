@@ -377,16 +377,6 @@ const apiSpecs: APIEndpoint[] = [
     desc: 'Fetch real-time Proxmox VE cluster status. Returns node health metrics, running VMs (QEMU), and containers (LXC) with CPU, RAM, and uptime data. Requires the Proxmox VE plugin to be enabled and the user authorized.',
     auth: 'USER',
     resBody: { enabled: true, connected: true, data: { nodes: [{ node: 'pve', status: 'online', cpu: 0.15, mem: 8589934592 }], resources: [{ id: 'qemu/100', name: 'web-server', type: 'qemu', status: 'running', cpu: 0.04, mem: 2147483648 }] }, ok: true }
-  },
-  {
-    id: 'proxmox-lifecycle',
-    group: 'Connections',
-    method: 'POST',
-    path: '/api/plugins/proxmox',
-    desc: 'Dispatch power lifecycle commands (start, stop, shutdown, reboot, suspend) to a Proxmox VM or container. Requires the Proxmox VE plugin enabled and user authorized.',
-    auth: 'USER',
-    reqBody: { node: 'pve', vmid: 100, type: 'qemu', action: 'reboot' },
-    resBody: { data: {}, message: 'Lifecycle action reboot dispatched successfully.', ok: true }
   }
 ];
 

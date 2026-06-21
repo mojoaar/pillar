@@ -64,7 +64,7 @@ All plugin configurations are:
 
 ## ☁️ Proxmox VE Integration Guide
 
-The Proxmox VE plugin enables cluster-wide virtual machine (QEMU) and Container (LXC) status monitoring, live cluster-node metric charting, and dynamic power lifecycle execution from a unified dashboard.
+The Proxmox VE plugin enables cluster-wide virtual machine (QEMU) and Container (LXC) status monitoring, live cluster-node metric charting, and importing VMs/containers directly into your connections catalog from a unified dashboard.
 
 ### 1. Proxmox VE API User & Privilege Configurations
 To securely connect Pillar to your Proxmox environment, it is highly recommended to set up a dedicated API user on your Proxmox host rather than using `root@pam`.
@@ -75,8 +75,6 @@ On your Proxmox VE web interface:
 2. Click **Create** and name the role `PillarGateway` (or similar).
 3. Assign the following privileges:
    - **`VM.Audit`**: Allows Pillar to read VM status, configurations, and resource limits.
-   - **`VM.PowerMgmt`**: Required to trigger power operations (Start, Stop, Shutdown, Reboot, Suspend).
-   - **`VM.Console`**: Required to launch embedded noVNC console sessions from the Proxmox dashboard.
    - **`VM.GuestAgent`**: Required to query QEMU guest agent for VM IP addresses (use `VM.GuestAgent.Unrestricted` if available).
    - **`Sys.Audit`**: Required to read physical cluster host node CPU, RAM, and disk status metrics.
 
@@ -118,14 +116,14 @@ On your Proxmox VE web interface:
 The Proxmox plugin automatically adjusts to match your environment's topology:
 - **Standalone single host**: Pillar discovers and lists resources on the single hypervisor.
 - **Multi-node cluster**: Pillar queries cluster resource maps (`/cluster/resources`), displaying live node metric statuses for **every host** in the cluster.
-- **Failover / Live-Migration Routing**: When triggering VM actions (e.g., Reboot), Pillar dynamically determines which node currently hosts the instance and routes the API request directly to that node. If a VM is migrated from `pve-01` to `pve-02`, Pillar handles the change seamlessly with zero manual profile updates!
+- **Importing Connections**: You can click the **Add to Connections** button on any virtual machine or container to quickly save it to your local Pillar connection catalog, automatically capturing the VM's hostname and guest IP address (requires QEMU Guest Agent for VMs).
 
 ---
 
 ### 4. Granting User Access Scopes
-- By default, only users with the **`ADMIN`** role can view the Proxmox Console or access its API endpoints.
-- To grant a standard (`USER`-role) account access to view and control Proxmox VMs:
+- By default, only users with the **`ADMIN`** role can view the Proxmox Inventory or access its API endpoints.
+- To grant a standard (`USER`-role) account access to view Proxmox resources:
   1. Go to **Admin Panel &rarr; User Accounts**.
   2. Click the **🔌 Plugins** button next to their name.
   3. Check the **Proxmox VE Plugin** box and click **Save Permissions**.
-  4. The **Proxmox Console** navigation tab will instantly appear in their left sidebar!
+  4. The **Proxmox VE** navigation tab will instantly appear in their left sidebar!

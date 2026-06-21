@@ -161,7 +161,7 @@ export default function Sidebar({ user }: SidebarProps) {
             className={`${styles.navItem} ${isActive('/proxmox') ? styles.navItemActive : ''}`}
           >
             <Server size={20} />
-            <span className={styles.navText}>Proxmox Console</span>
+            <span className={styles.navText}>Proxmox VE</span>
           </Link>
         )}
 

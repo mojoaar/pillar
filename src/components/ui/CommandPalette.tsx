@@ -146,7 +146,7 @@ export default function CommandPalette() {
     {
       id: 'nav-proxmox',
       category: 'Navigation',
-      title: 'Go to Proxmox Console',
+      title: 'Go to Proxmox VE',
       subtitle: 'Monitor virtual machines and cluster nodes',
       icon: <ServerIcon />,
       action: () => { window.location.href = '/proxmox'; }

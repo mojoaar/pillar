@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Monitor, RefreshCw, Power, Ban, Play, RefreshCw as RebootIcon, Activity, Server, AlertTriangle, Tv } from 'lucide-react';
+import { Monitor, RefreshCw, Activity, Server, AlertTriangle, Plus, X, CheckCircle } from 'lucide-react';
 
 interface ProxmoxResource {
   id: string;
@@ -35,8 +35,23 @@ export default function ProxmoxDashboard() {
   const [nodes, setNodes] = useState<NodeResource[]>([]);
   const [vms, setVms] = useState<ProxmoxResource[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+
+  // Overlay Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [host, setHost] = useState('');
+  const [protocol, setProtocol] = useState<'SSH' | 'VNC' | 'RDP'>('SSH');
+  const [port, setPort] = useState(22);
+  const [username, setUsername] = useState('root');
+  const [authType, setAuthType] = useState<'PASSWORD' | 'KEY'>('PASSWORD');
+  const [password, setPassword] = useState('');
+  const [privateKey, setPrivateKey] = useState('');
+  const [passphrase, setPassphrase] = useState('');
+  const [tags, setTags] = useState('proxmox');
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -51,9 +66,7 @@ export default function ProxmoxDashboard() {
       setConnected(data.connected || false);
       
       if (data.enabled && data.connected && data.data) {
-        // Node metrics now enriched server-side via /nodes/{node}/status
         setNodes(data.data.nodes || []);
-        // Only VMs and containers — exclude node-type resources
         setVms((data.data.resources || []).filter((r: any) => r.type === 'qemu' || r.type === 'lxc'));
       } else if (data.enabled && !data.connected) {
         setError(data.message || 'Could not establish connection to the remote Proxmox VE hypervisor.');
@@ -69,34 +82,63 @@ export default function ProxmoxDashboard() {
     fetchData();
   }, []);
 
-  const handleVmAction = async (vm: ProxmoxResource, action: 'start' | 'stop' | 'shutdown' | 'reboot' | 'suspend') => {
-    if (!vm.vmid) return;
-    
-    const key = `${vm.id}-${action}`;
-    setActionLoading((prev) => ({ ...prev, [key]: true }));
-    setError(null);
+  const handleOpenImportModal = (vm: ProxmoxResource) => {
+    setName(vm.name);
+    setHost((vm as any).network || '');
+    setProtocol('SSH');
+    setPort(22);
+    setUsername('root');
+    setAuthType('PASSWORD');
+    setPassword('');
+    setPrivateKey('');
+    setPassphrase('');
+    setTags('proxmox');
+    setSaveError(null);
+    setSaveSuccess(false);
+    setIsModalOpen(true);
+  };
 
+  const handleProtocolChange = (p: 'SSH' | 'VNC' | 'RDP') => {
+    setProtocol(p);
+    if (p === 'SSH') setPort(22);
+    else if (p === 'VNC') setPort(5900);
+    else if (p === 'RDP') setPort(3389);
+  };
+
+  const handleSaveConnection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaveLoading(true);
+    setSaveError(null);
     try {
-      const res = await fetch('/api/plugins/proxmox', {
+      const res = await fetch('/api/connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          node: vm.node,
-          vmid: vm.vmid,
-          type: vm.type,
-          action,
+          name,
+          host,
+          port,
+          protocol,
+          tags,
+          username,
+          authType,
+          password: password || null,
+          privateKey: privateKey || null,
+          passphrase: passphrase || null,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to dispatch command.');
+      if (!res.ok) throw new Error(data.error || 'Failed to save connection.');
 
-      // Reload dataset to update statuses in real-time after 1 second delay (allowing host cluster to record states)
-      setTimeout(fetchData, 1000);
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSaveSuccess(false);
+      }, 1500);
     } catch (err: any) {
-      setError(err.message || 'Operation failed.');
+      setSaveError(err.message || 'Failed to import connection.');
     } finally {
-      setActionLoading((prev) => ({ ...prev, [key]: false }));
+      setSaveLoading(false);
     }
   };
 
@@ -141,10 +183,10 @@ export default function ProxmoxDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Server style={{ color: 'var(--accent)' }} />
-            <span>Proxmox VE Cluster Console</span>
+            <span>Proxmox VE Cluster Inventory</span>
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>
-            Monitor cluster health, view hypervisor node states, and dispatch power commands to VM instances.
+            Monitor cluster health, view hypervisor node states, and easily add VMs or containers to your connections catalog.
           </p>
         </div>
 
@@ -310,67 +352,250 @@ export default function ProxmoxDashboard() {
                     </div>
                   )}
 
-                  {/* Power Management Toolbar */}
+                  {/* Connection Import Action */}
                   <div style={{
-                    display: 'flex',
-                    gap: '0.4rem',
-                    justifyContent: 'flex-end',
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--border)',
                     marginTop: 'auto'
                   }}>
-                    {isRunning ? (
-                      <>
-                        {vm.type === 'qemu' && (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => window.open(`/proxmox/console?node=${encodeURIComponent(vm.node)}&vmid=${vm.vmid}&type=${vm.type}`, `pve-console-${vm.vmid}`, 'width=1024,height=768')}
-                            title="Open live VNC console"
-                            style={{ padding: '0.25rem 0.5rem' }}
-                          >
-                            <Tv size={12} />
-                            <span style={{ fontSize: '0.75rem' }}>Console</span>
-                          </button>
-                        )}
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleVmAction(vm, 'reboot')}
-                          disabled={actionLoading[keyPrefix + 'reboot']}
-                          title="Reboot instance"
-                          style={{ padding: '0.25rem 0.5rem' }}
-                        >
-                          <RebootIcon size={12} className={actionLoading[keyPrefix + 'reboot'] ? 'spin' : ''} />
-                          <span style={{ fontSize: '0.75rem' }}>Reboot</span>
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleVmAction(vm, 'shutdown')}
-                          disabled={actionLoading[keyPrefix + 'shutdown']}
-                          title="Graceful shutdown"
-                          style={{ padding: '0.25rem 0.5rem' }}
-                        >
-                          <Power size={12} className={actionLoading[keyPrefix + 'shutdown'] ? 'spin' : ''} />
-                          <span style={{ fontSize: '0.75rem' }}>Stop</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleVmAction(vm, 'start')}
-                        disabled={actionLoading[keyPrefix + 'start']}
-                        title="Power on instance"
-                        style={{ padding: '0.25rem 0.5rem', width: '100px', justifyContent: 'center' }}
-                      >
-                        <Play size={12} className={actionLoading[keyPrefix + 'start'] ? 'spin' : ''} />
-                        <span style={{ fontSize: '0.75rem' }}>Power On</span>
-                      </button>
-                    )}
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleOpenImportModal(vm)}
+                      style={{ width: '100%', justifyContent: 'center', gap: '0.4rem', padding: '0.35rem 0.5rem' }}
+                    >
+                      <Plus size={14} />
+                      <span style={{ fontSize: '0.8rem' }}>Add to Connections</span>
+                    </button>
                   </div>
                 </div>
               );
             })}
           </div>
         </>
+      )}
+
+      {/* Import to Connections Dialog Overlay */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem',
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--border-radius)',
+            width: '100%',
+            maxWidth: '540px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
+            padding: '1.5rem',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div className="flex-between" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Plus size={18} style={{ color: 'var(--accent)' }} />
+                <span>Add VM to Connections</span>
+              </h3>
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => setIsModalOpen(false)}
+                style={{ padding: '0.25rem', borderRadius: '50%', minWidth: 'unset', width: '28px', height: '28px', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {saveSuccess ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 0', gap: '1rem' }}>
+                <CheckCircle size={48} style={{ color: 'var(--success)' }} />
+                <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>Connection Saved Successfully!</h4>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                  The profile has been added to your catalog.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveConnection} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {saveError && (
+                  <div style={{ backgroundColor: 'rgba(255, 85, 85, 0.1)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '0.75rem', borderRadius: 'var(--border-radius)', fontSize: '0.85rem' }}>
+                    {saveError}
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Name</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={saveLoading}
+                    placeholder="e.g. Ubuntu VM"
+                  />
+                </div>
+
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Protocol</label>
+                    <select
+                      className="input-field"
+                      value={protocol}
+                      onChange={(e) => handleProtocolChange(e.target.value as any)}
+                      disabled={saveLoading}
+                      style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem' }}
+                    >
+                      <option value="SSH">SSH</option>
+                      <option value="VNC">VNC</option>
+                      <option value="RDP">RDP</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Port</label>
+                    <input
+                      type="number"
+                      className="input-field"
+                      value={port}
+                      onChange={(e) => setPort(Number(e.target.value))}
+                      required
+                      disabled={saveLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Host / IP Address</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={host}
+                      onChange={(e) => setHost(e.target.value)}
+                      required
+                      disabled={saveLoading}
+                      placeholder="e.g. 192.168.1.50"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Username</label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      disabled={saveLoading}
+                      placeholder="e.g. root"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Tags <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Comma-separated)</span></label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    disabled={saveLoading}
+                  />
+                </div>
+
+                {protocol === 'SSH' && (
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Authentication Handler</label>
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                        <input
+                          type="radio"
+                          name="import-authType"
+                          checked={authType === 'PASSWORD'}
+                          onChange={() => setAuthType('PASSWORD')}
+                          disabled={saveLoading}
+                        />
+                        <span>Password</span>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                        <input
+                          type="radio"
+                          name="import-authType"
+                          checked={authType === 'KEY'}
+                          onChange={() => setAuthType('KEY')}
+                          disabled={saveLoading}
+                        />
+                        <span>Private Key</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {authType === 'PASSWORD' || protocol !== 'SSH' ? (
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Password <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                    <input
+                      type="password"
+                      className="input-field"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={saveLoading}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Private Key <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                      <textarea
+                        className="input-field"
+                        value={privateKey}
+                        onChange={(e) => setPrivateKey(e.target.value)}
+                        disabled={saveLoading}
+                        rows={4}
+                        placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                        style={{ fontFamily: 'var(--terminal-font)', fontSize: '0.8rem', resize: 'vertical' }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Key Passphrase <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                      <input
+                        type="password"
+                        className="input-field"
+                        value={passphrase}
+                        onChange={(e) => setPassphrase(e.target.value)}
+                        disabled={saveLoading}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)} disabled={saveLoading}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={saveLoading}>
+                    {saveLoading ? 'Saving...' : 'Save Connection'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Keyframe Styling */}

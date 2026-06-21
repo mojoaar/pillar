@@ -91,8 +91,8 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 
 ### Phase 11: Proxmox VE API Integration
 - [x] Proxmox token authentication storage
-- [x] Dashboard client reading PVE API nodes and VMs, displaying runtime graphs, and sending start/stop/reboot commands
-- [x] Embed direct VM terminal consoles via Proxmox token-ticket integrations
+- [x] Dashboard client reading PVE API nodes and VMs, displaying runtime graphs, and providing one-click import as Connection profiles
+- [x] Secure read-only permissions and inventory mapping
 
 ### Phase 12: Advanced Automations & Diagnostics
 - [ ] 1-Click Saved Maintenance Scripts & Automation Engine
@@ -114,7 +114,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Validate callbackUrl is relative path in LoginForm.tsx
 - [x] Add Origin header validation to all 4 WebSocket handlers
 - [x] Move JWT cookie validation BEFORE wss.handleUpgrade() in upgrade interceptor
-- [x] Add SRI integrity hashes to CDN scripts (RdpViewerWindow, PveVncViewerWindow)
+- [x] Add SRI integrity hashes to CDN scripts (RdpViewerWindow)
 - [x] Remove unsafe-eval from CSP; add Strict-Transport-Security header
 
 #### 🟠 Tier 2 — HIGH Severity

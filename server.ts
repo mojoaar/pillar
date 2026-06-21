@@ -159,7 +159,6 @@ app.prepare().then(() => {
   const wss = new WebSocketServer({ noServer: true });
   const wssVnc = new WebSocketServer({ noServer: true });
   const wssRdp = new WebSocketServer({ noServer: true });
-  const wssPveVnc = new WebSocketServer({ noServer: true });
 
   // Persistent SSH Session Registry supporting Resumable Connections (Finding #resumable)
   // Maps "userId:connectionId" to a single persistent SSH client and running shell stream
@@ -915,184 +914,8 @@ app.prepare().then(() => {
   });
 
   // ==========================================
-  // 4. WEBSOCKET PROXMOX VE VNC PROXY GATEWAY (Phase 11 Extension)
+  // 4. WEBSOCKET PROXMOX VE VNC PROXY GATEWAY (Phase 11 Extension - Removed)
   // ==========================================
-  wssPveVnc.on('connection', async (ws: WebSocket, request) => {
-    const url = request.url || '';
-    const parsedUrl = parseUrl(url);
-    const query = parsedUrl.query;
-    
-    const node = query.node as string;
-    const vmid = query.vmid as string;
-    const type = (query.type as string) || 'qemu';
-    const sessionId = Math.random().toString(36).substring(2, 9);
-
-    let pveWs: any = null;
-
-    try {
-      const cookies = parseCookies(request.headers.cookie || '');
-      const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
-      const sessionToken = cookies[cookieName];
-
-      if (!sessionToken) {
-        throw new Error('UNAUTHORIZED: No active session.');
-      }
-
-      const decodedUser = await decode({
-        token: sessionToken,
-        secret: NEXTAUTH_SECRET,
-        salt: cookieName,
-      });
-
-      if (!decodedUser || !decodedUser.id) {
-        throw new Error('UNAUTHORIZED: Token invalid.');
-      }
-
-      if (!node || !vmid) {
-        throw new Error('BAD_REQUEST: Missing node or vmid.');
-      }
-
-      // Verify authorization (ADMIN or allowedPlugins includes proxmox-ve)
-      const dbUser = await db.user.findUnique({
-        where: { id: decodedUser.id as string },
-        select: { role: true, allowedPlugins: true },
-      });
-
-      const userRole = dbUser?.role || 'USER';
-      const isAdmin = userRole === 'ADMIN';
-      const userPlugins = (dbUser?.allowedPlugins || '').split(',').map((p: string) => p.trim());
-      const isPveAllowed = isAdmin || userPlugins.includes('proxmox-ve');
-
-      if (!isPveAllowed) {
-        throw new Error('FORBIDDEN: Insufficient plugin permissions.');
-      }
-
-      // Load Proxmox config
-      const pluginRecord = await db.plugin.findUnique({ where: { id: 'proxmox-ve' } });
-      if (!pluginRecord || !pluginRecord.enabled || !pluginRecord.config) {
-        throw new Error('NOT_CONFIGURED: Proxmox VE plugin is not active.');
-      }
-
-      const config = JSON.parse(decrypt(pluginRecord.config));
-      const verifySsl = config.verifySsl !== false && config.verifySsl !== 'false';
-
-      // Extract PVE API host from the configured URL
-      let pveHost = 'localhost';
-      let pvePort = 8006;
-      try {
-        const cfgUrl = new URL(config.apiUrl);
-        pveHost = cfgUrl.hostname;
-        if (cfgUrl.port) pvePort = parseInt(cfgUrl.port, 10);
-      } catch (e) {}
-
-      // Request VNC proxy ticket from Proxmox API
-      const httpsModule = await import('https');
-      const ticketRes = await new Promise<any>((resolve, reject) => {
-        const ticketUrl = new URL(`${config.apiUrl}/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncproxy`);
-        const postBody = JSON.stringify({ websocket: 1 });
-        const options: any = {
-          hostname: ticketUrl.hostname,
-          port: ticketUrl.port || 443,
-          path: ticketUrl.pathname + ticketUrl.search,
-          method: 'POST',
-          headers: {
-            'Authorization': `PVEAPIToken=${config.apiToken}`,
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postBody),
-          },
-          rejectUnauthorized: verifySsl,
-        };
-
-        const req = httpsModule.request(options, (res: any) => {
-          let data = '';
-          res.on('data', (chunk: any) => data += chunk);
-          res.on('end', () => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('Invalid ticket response')); }
-            } else {
-              reject(new Error(`Proxmox returned ${res.statusCode}: ${data}`));
-            }
-          });
-        });
-        req.on('error', reject);
-        req.write(postBody);
-        req.end();
-      });
-
-      const ticket = ticketRes.data?.ticket;
-      const proxyPort = ticketRes.data?.port || 5900;
-
-      if (!ticket) {
-        throw new Error('PVE_TICKET_FAILED: Could not obtain VNC console ticket from hypervisor.');
-      }
-
-      // Establish WebSocket to Proxmox VNC via ws library with proper SSL agent
-      const WebSocketLib = await import('ws');
-      const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${encodeURIComponent(ticket)}`;
-      
-      const agent = new (await import('https')).Agent({ rejectUnauthorized: verifySsl });
-
-      pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
-        agent,
-        headers: { Authorization: `PVEAPIToken=${config.apiToken}` },
-      });
-
-      // Buffer browser messages while PVE WebSocket is connecting
-      const buffer: any[] = [];
-      let pveOpen = false;
-
-      pveWs.on('open', () => {
-        console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel open. Session: ${sessionId}`);
-        sessionRegistry.set(sessionId, {
-          ws,
-          username: decodedUser.email || 'unknown',
-          host: `Proxmox VM#${vmid} @ ${node}`,
-          startedAt: new Date(),
-          connectionId: vmid,
-          protocol: 'PVE-VNC',
-        });
-        // Flush buffered browser messages
-        pveOpen = true;
-        for (const msg of buffer) pveWs.send(msg);
-        buffer.length = 0;
-      });
-
-      pveWs.on('message', (data: any) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(data, { binary: true });
-        }
-      });
-
-      pveWs.on('error', (err: any) => {
-        console.error('[WS-PVE-VNC] PVE WebSocket error:', err.message);
-        ws.close(1011, `PVE VNC error: ${err.message}`);
-      });
-
-      pveWs.on('close', (code: number) => {
-        console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel closed (code ${code}). Session: ${sessionId}`);
-        ws.close();
-      });
-
-      ws.on('message', (message: any) => {
-        if (pveOpen) {
-          pveWs.send(message);
-        } else {
-          buffer.push(message);
-        }
-      });
-
-      ws.on('close', () => {
-        console.log(`[WS-PVE-VNC] Browser client disconnected. Session: ${sessionId}`);
-        if (pveWs) { try { pveWs.close(); } catch (e) {} }
-        sessionRegistry.delete(sessionId);
-      });
-
-    } catch (err: any) {
-      console.error('[WS-PVE-VNC] Handshake crashed:', err.message);
-      ws.close(1008, err.message);
-      sessionRegistry.delete(sessionId);
-    }
-  });
 
   // Intercept HTTP server 'upgrade' requests — validate Origin and session cookie BEFORE upgrading
   server.on('upgrade', (request, socket, head) => {
@@ -1142,10 +965,6 @@ app.prepare().then(() => {
     } else if (pathname === '/api/ws/rdp') {
       wssRdp.handleUpgrade(request, socket, head, (ws) => {
         wssRdp.emit('connection', ws, request);
-      });
-    } else if (pathname === '/api/ws/proxmox-vnc') {
-      wssPveVnc.handleUpgrade(request, socket, head, (ws) => {
-        wssPveVnc.emit('connection', ws, request);
       });
     }
   });

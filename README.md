@@ -14,7 +14,7 @@ Pillar is a highly secure, beautiful, self-hosted web-based remote-access gatewa
 - **Web SSH Terminal**: Fully responsive, low-latency terminal sessions backed by `@xterm/xterm` canvas rendering and real-time WebSocket communication.
 - **Web VNC Remote Desktop**: Seamless HTML5 browser remote desktop console streams utilizing `@novnc/novnc` canvas renders.
 - **Web RDP Remote Desktop**: Apache Guacamole-backed RDP gateway with zero-dependency protocol handshake and dynamic CDN-loaded client.
-- **Proxmox VE Integration**: Real-time cluster node monitoring, VM resource graphs, power lifecycle controls, and live noVNC console embedding.
+- **Proxmox VE Integration**: Real-time cluster node monitoring, VM resource graphs, and one-click connection importing.
 - **Extensible Plugins Framework**: Encrypted AES-256-GCM configuration storage. Enable/disable integrations globally from the Admin panel.
 - **Personal API Keys**: Generate `pil_live_` bearer tokens with HMAC-SHA256 hashing for programmatic scripting and CLI access.
 - **Advanced Multi-Theming & Fonts**: Choose from 8 visual themes (Dracula, Nord, Cyberpunk, and GitHub light & dark variations) and select from 10 popular monospace coding fonts.
@@ -87,7 +87,7 @@ Pillar is made possible by the incredible work of these open-source libraries, m
 - **Integrated Portals**: Coded the dynamic guides reader and interactive Swagger-style REST explorer at `/apidocs`.
 - **Web VNC Remote Desktop**: Integrated `@novnc/novnc` with raw WebSocket-to-TCP RFB proxy bridge.
 - **Web RDP Remote Desktop**: Added Apache Guacamole (`guacd`) Docker sidecar with zero-dependency protocol handshake in `server.ts`.
-- **Proxmox VE Plugin**: Extensible plugins framework with encrypted config storage; real-time cluster monitoring, VM power lifecycle controls, and embedded noVNC consoles.
+- **Proxmox VE Plugin**: Extensible plugins framework with encrypted config storage; real-time cluster monitoring, VM resource graphs, and one-click connection importing.
 - **Personal API Keys**: `pil_live_` bearer tokens with HMAC-SHA256 hashing, expiration, and instant revocation.
 - **Collapsible Sidebar**: `Cmd/Ctrl+B` shortcut plus toggle button; state persisted in localStorage.
 - **Optional Domain Name**: Added display-only domain field to connection profiles.
