@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
       name: c.name,
       host: c.host,
       port: c.port,
-      protocol: c.protocol, // include protocol (SSH / VNC)
+      protocol: c.protocol, // include protocol
+      ignoreCert: c.ignoreCert,
       tags: c.tags ? c.tags.split(',') : [], // include connection tags as string array (Finding #tags)
       username: c.username,
       authType: c.authType,
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -104,7 +105,8 @@ export async function POST(request: NextRequest) {
         host: host.trim(),
         domain: domain ? domain.trim() : null,
         port: parsedPort,
-        protocol: protocol === 'VNC' ? 'VNC' : 'SSH',
+        protocol: ['SSH', 'VNC', 'RDP'].includes(protocol) ? protocol : 'SSH',
+        ignoreCert: Boolean(ignoreCert),
         tags: sanitizedTags,
         username: username.trim(),
         authType: authType === 'KEY' ? 'KEY' : 'PASSWORD',

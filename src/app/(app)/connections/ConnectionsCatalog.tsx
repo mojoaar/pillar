@@ -10,6 +10,7 @@ interface ConnectionModel {
   domain?: string | null;
   port: number;
   protocol?: 'SSH' | 'VNC' | 'RDP';
+  ignoreCert?: boolean;
   tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
@@ -55,6 +56,7 @@ export default function ConnectionsCatalog({
   const [password, setPassword] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
+  const [ignoreCert, setIgnoreCert] = useState(false);
 
   // Filtering Connections (Finding #tags-filter)
   const [selectedTag, setSelectedTag] = useState('');
@@ -77,6 +79,7 @@ export default function ConnectionsCatalog({
     setPassword('');
     setPrivateKey('');
     setPassphrase('');
+    setIgnoreCert(false);
     setEditingEditingConnection(null);
     setError(null);
   };
@@ -99,6 +102,7 @@ export default function ConnectionsCatalog({
     setPassword(''); // never leak password back (Gotcha #113)
     setPrivateKey(''); // never leak private key back
     setPassphrase('');
+    setIgnoreCert(conn.ignoreCert || false);
     setError(null);
     setShowModal(true);
   };
@@ -128,12 +132,13 @@ export default function ConnectionsCatalog({
         domain: domain || null,
         port: Number(port),
         protocol, // include protocol parameter (SSH / VNC / RDP)
+        ignoreCert, // include certificate validation preference
         tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
-        password: authType === 'PASSWORD' ? password : null,
-        privateKey: authType === 'KEY' ? privateKey : null,
-        passphrase: authType === 'KEY' ? passphrase : null,
+        password: authType === 'PASSWORD' || protocol !== 'SSH' ? password : null,
+        privateKey: authType === 'KEY' && protocol === 'SSH' ? privateKey : null,
+        passphrase: authType === 'KEY' && protocol === 'SSH' ? passphrase : null,
       };
 
       const url = editingConnection 
@@ -592,21 +597,38 @@ export default function ConnectionsCatalog({
               )}
 
               {authType === 'PASSWORD' ? (
-                <div className="form-group">
-                  <label htmlFor="conn-password">
-                    Password {editingConnection && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Leave blank to keep current)</span>}
-                  </label>
-                  <input
-                    type="password"
-                    id="conn-password"
-                    className="input-field"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required={!editingConnection}
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label htmlFor="conn-password">
+                      Password {editingConnection && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Leave blank to keep current)</span>}
+                    </label>
+                    <input
+                      type="password"
+                      id="conn-password"
+                      className="input-field"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      required={!editingConnection}
+                    />
+                  </div>
+                  {(protocol === 'RDP' || protocol === 'VNC') && (
+                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <input
+                        type="checkbox"
+                        id="conn-ignoreCert"
+                        checked={ignoreCert}
+                        onChange={(e) => setIgnoreCert(e.target.checked)}
+                        disabled={loading}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                      <label htmlFor="conn-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', marginBottom: 0 }}>
+                        Ignore SSL / TLS certificate errors (For self-signed homelab certs)
+                      </label>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   <div className="form-group">

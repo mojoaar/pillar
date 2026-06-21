@@ -30,6 +30,8 @@ services:
     image: guacamole/guacd:1.5.4
     container_name: pillar-guacd
     restart: unless-stopped
+    environment:
+      - GUACD_LOG_LEVEL=debug
 
 volumes:
   pillar-data:

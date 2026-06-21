@@ -810,15 +810,12 @@ app.prepare().then(() => {
       });
       guacdClient.setKeepAlive(true, 10000);
 
-      // Determine per-connection cert verification: configurable via connection tags
-      const ignoreRdpCert = connection.tags?.includes('rdp-ignore-cert');
+      // Determine per-connection cert verification: configurable via connection schema field
+      const ignoreRdpCert = connection.ignoreCert;
       const decryptedPassword = connection.password ? decrypt(connection.password) : '';
 
       // Initialize state variables for Guacamole Handshake Protocol negotiation
       let handshook = false;
-
-      // Determine per-connection cert verification: configurable via connection tags
-      const ignoreCert = connection.tags?.includes('rdp-ignore-cert') ? 'true' : 'false';
 
       guacdClient.on('connect', () => {
         // Send initial protocol select instruction

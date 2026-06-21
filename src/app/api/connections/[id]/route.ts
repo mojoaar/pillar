@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
@@ -52,6 +52,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (protocol) {
       updateData.protocol = ['SSH', 'VNC', 'RDP'].includes(protocol) ? protocol : 'SSH';
+    }
+    if (ignoreCert !== undefined) {
+      updateData.ignoreCert = Boolean(ignoreCert);
     }
     
     // Sanitize incoming tags updates (Finding #tags)

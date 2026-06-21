@@ -45,6 +45,7 @@ model Connection {
   privateKey   String?            // encrypted AES-256-GCM
   passphrase   String?            // encrypted AES-256-GCM
   isShared     Boolean            @default(false)
+  ignoreCert   Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 

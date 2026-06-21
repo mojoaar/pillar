@@ -49,6 +49,7 @@ export default function ProxmoxDashboard() {
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [tags, setTags] = useState('proxmox');
+  const [ignoreCert, setIgnoreCert] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -93,6 +94,7 @@ export default function ProxmoxDashboard() {
     setPrivateKey('');
     setPassphrase('');
     setTags('proxmox');
+    setIgnoreCert(true);
     setSaveError(null);
     setSaveSuccess(false);
     setIsModalOpen(true);
@@ -109,6 +111,7 @@ export default function ProxmoxDashboard() {
     setPrivateKey('');
     setPassphrase('');
     setTags('proxmox,hypervisor');
+    setIgnoreCert(true);
     setSaveError(null);
     setSaveSuccess(false);
     setIsModalOpen(true);
@@ -135,6 +138,7 @@ export default function ProxmoxDashboard() {
           port,
           protocol,
           tags,
+          ignoreCert,
           username,
           authType,
           password: password || null,
@@ -579,19 +583,36 @@ export default function ProxmoxDashboard() {
                   </div>
                 )}
 
-                {authType === 'PASSWORD' || protocol !== 'SSH' ? (
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Password <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
-                    <input
-                      type="password"
-                      className="input-field"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={saveLoading}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                ) : (
+                 {authType === 'PASSWORD' || protocol !== 'SSH' ? (
+                   <>
+                     <div className="form-group">
+                       <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Password <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                       <input
+                         type="password"
+                         className="input-field"
+                         value={password}
+                         onChange={(e) => setPassword(e.target.value)}
+                         disabled={saveLoading}
+                         placeholder="••••••••"
+                       />
+                     </div>
+                     {(protocol === 'RDP' || protocol === 'VNC') && (
+                       <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                         <input
+                           type="checkbox"
+                           id="import-ignoreCert"
+                           checked={ignoreCert}
+                           onChange={(e) => setIgnoreCert(e.target.checked)}
+                           disabled={saveLoading}
+                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                         />
+                         <label htmlFor="import-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', marginBottom: 0, fontWeight: 600, color: 'var(--text-primary)' }}>
+                           Ignore SSL / TLS certificate errors (For self-signed homelab certs)
+                         </label>
+                       </div>
+                     )}
+                   </>
+                 ) : (
                   <>
                     <div className="form-group">
                       <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Private Key <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
