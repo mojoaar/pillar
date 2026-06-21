@@ -96,7 +96,10 @@ export async function GET(request: NextRequest) {
           let ip: string | null = null;
           try {
             ip = await client.getVmIp(r.node, r.vmid, r.type);
-          } catch {}
+            console.log(`[Proxmox API] VM ${r.vmid} (${r.name}) IP: ${ip || 'not found'}`);
+          } catch (e: any) {
+            console.warn(`[Proxmox API] VM ${r.vmid} agent failed: ${e.message}`);
+          }
           return { ...r, network: ip || (bridgeMatch ? bridgeMatch[1] : null) };
         } catch {
           return r;

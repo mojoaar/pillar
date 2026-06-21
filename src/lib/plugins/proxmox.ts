@@ -146,7 +146,8 @@ export class ProxmoxClient {
         }
       }
       return null;
-    } catch {
+    } catch (err: any) {
+      console.warn(`[Proxmox Client] Agent query failed for ${type}/${vmid} on ${node}: ${err.message}`);
       return null;
     }
   }
