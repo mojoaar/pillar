@@ -179,3 +179,60 @@
     padding: 0.75rem;
   }
 }
+
+/* Collapsed state (triggered by Cmd/Ctrl+B shortcut or toggle button) */
+.sidebar.collapsed {
+  width: 70px;
+}
+
+.sidebar.collapsed .logoTitle,
+.sidebar.collapsed .navText,
+.sidebar.collapsed .userName,
+.sidebar.collapsed .userRole,
+.sidebar.collapsed .signOutText {
+  display: none;
+}
+
+.sidebar.collapsed .logoSection,
+.sidebar.collapsed .userSection {
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sidebar.collapsed .navItem {
+  justify-content: center;
+  padding: 0.75rem;
+}
+
+.sidebar.collapsed .signOutLink {
+  justify-content: center;
+  padding: 0.75rem;
+  margin: 0.5rem auto;
+}
+
+/* Toggle collapse button */
+.collapseBtn {
+  position: absolute;
+  top: 1rem;
+  right: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all var(--transition-speed) ease;
+  padding: 0;
+  font-size: 0.75rem;
+}
+
+.collapseBtn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background-color: var(--bg-tertiary);
+}

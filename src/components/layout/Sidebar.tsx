@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -12,7 +12,9 @@ import {
   ShieldAlert, 
   LogOut,
   Server,
-  Puzzle
+  Puzzle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import styles from './Sidebar.module.css';
@@ -40,6 +42,40 @@ export default function Sidebar({ user }: SidebarProps) {
     return pathname.startsWith(path);
   };
 
+  // Sidebar collapse state (persisted across sessions)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pillar-sidebar-collapsed') === '1';
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('pillar-sidebar-collapsed', next ? '1' : '0');
+      return next;
+    });
+  };
+
+  // Global keyboard shortcut: Cmd/Ctrl+B toggles sidebar collapse
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyB' && (e.metaKey || e.ctrlKey)) {
+        // Ignore when focus is inside input, textarea, or contenteditable
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) {
+          return;
+        }
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Extract initials from user's display name for avatar fallback
   const getInitials = (name: string) => {
     return name
@@ -58,7 +94,17 @@ export default function Sidebar({ user }: SidebarProps) {
   };
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`} style={{ position: 'relative' }}>
+      {/* Collapse toggle button */}
+      <button
+        className={styles.collapseBtn}
+        onClick={toggleSidebar}
+        title={isCollapsed ? 'Expand sidebar (⌘B)' : 'Collapse sidebar (⌘B)'}
+        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
       {/* Logo branding section */}
       <div className={styles.logoSection}>
         <div className={styles.logoIcon}>
