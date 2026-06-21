@@ -384,12 +384,27 @@ app.prepare().then(() => {
         passphrase,
       });
 
+      // CRITICAL HANDSHAKE RACE GUARD: If the browser closed the WebSocket while SSH was handshaking,
+      // terminate the SSH connection immediately and abort setup (Finding #race-guard)
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        console.log(`[WS-SSH] Aborting setup. Browser WebSocket closed during SSH handshake.`);
+        sshClient.end();
+        return;
+      }
+
       // Launch interactive shell
       sshClient.shell({
         term: 'xterm-256color',
         cols: initialCols,
         rows: initialRows,
       }, (err: any, stream: any) => {
+        if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+          console.log(`[WS-SSH] Aborting shell stream setup. Browser WebSocket closed.`);
+          if (stream) stream.end();
+          sshClient.end();
+          return;
+        }
+
         if (err) {
           console.error('[WS-SSH] Failed to initiate shell stream:', err);
           ws.send(`\r\n\x1b[31m[Pillar Gateway Error] Failed to launch remote shell: ${err.message}\x1b[0m\r\n`);
