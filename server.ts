@@ -852,6 +852,8 @@ app.prepare().then(() => {
               if (argName === 'port') return (connection.port || 3389).toString();
               if (argName === 'username') return connection.username;
               if (argName === 'password') return decryptedPassword;
+              if (argName === 'domain') return connection.domain || '';
+              if (argName === 'security') return 'any';
               if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
               if (argName === 'width') return '1024';
               if (argName === 'height') return '768';
