@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { writeFile } from 'fs/promises';
+import { writeFile, unlink } from 'fs/promises';
 import path from 'path';
 import { writeAudit } from '@/lib/audit';
 
@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
  * POST /api/profile/avatar
  * Handles user avatar file uploads with strict size (max 2MB) and MIME validation.
  * Implements timestamp filename cache-busting (Gotcha #15).
+ * Cleans up orphaned older avatar files to prevent storage leakages (Finding #4).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +42,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file format. Only PNG, JPEG, and WEBP are accepted.' }, { status: 400 });
     }
 
-    // 4. Resolve file extension and construct cache-busted filename (Gotcha #15)
+    // 4. Clean up the user's old avatar file if present (Finding #4)
+    const currentUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+
+    if (currentUser && currentUser.avatarUrl && currentUser.avatarUrl.startsWith('/uploads/avatars/')) {
+      try {
+        // Construct the absolute path of the old avatar file (Gotcha #28)
+        const oldFilename = path.basename(currentUser.avatarUrl);
+        const oldFilepath = path.join(process.cwd(), 'public', 'uploads', 'avatars', oldFilename);
+        
+        // Delete file on local disk
+        await unlink(oldFilepath);
+        console.log(`[Avatar Cleanup] Deleted orphaned avatar file: ${oldFilename}`);
+      } catch (err: any) {
+        // Safe try-catch wrapper: prevent failure of deletion from blocking new upload
+        console.warn(`[Avatar Cleanup] Failed to delete old avatar image: ${err.message}`);
+      }
+    }
+
+    // 5. Resolve file extension and construct cache-busted filename (Gotcha #15)
     let ext = 'png';
     if (file.type === 'image/jpeg' || file.type === 'image/jpg') ext = 'jpg';
     if (file.type === 'image/webp') ext = 'webp';
@@ -57,14 +79,14 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filepath, buffer);
 
-    // 5. Update avatarUrl inside database User table
+    // 6. Update avatarUrl inside database User table
     const avatarUrl = `/uploads/avatars/${filename}`;
     await db.user.update({
       where: { id: userId },
       data: { avatarUrl },
     });
 
-    // 6. Write event to system audit logs
+    // 7. Write event to system audit logs
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
     await writeAudit(
       userId,

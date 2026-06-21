@@ -38,6 +38,7 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
   const [mfaQrCode, setMfaQrCode] = useState<string | null>(null);
   const [mfaSecret, setMfaQrSecret] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState('');
+  const [mfaBackupCodes, setMfaBackupCodes] = useState<string[]>([]);
   const [isEnrollingMfa, setIsEnrollingMfa] = useState(false);
 
   // Preferences (stored in localStorage)
@@ -182,6 +183,7 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
 
       setMfaQrCode(data.data.qrCode);
       setMfaQrSecret(data.data.secret);
+      setMfaBackupCodes(data.data.backupCodes || []);
       setIsEnrollingMfa(true);
     } catch (err: any) {
       setError(err.message || 'An error occurred generating secret.');
@@ -549,6 +551,41 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
                         </p>
                       )}
                     </div>
+
+                    {mfaBackupCodes.length > 0 && (
+                      <div style={{
+                        marginTop: '1rem',
+                        padding: '1rem',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--border-radius)',
+                        width: '100%',
+                        textAlign: 'left'
+                      }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--warning)', display: 'block', marginBottom: '0.5rem', textAlign: 'center' }}>
+                          ⚠️ SAVE THESE RECOVERY CODES!
+                        </span>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: '1.4', textAlign: 'center' }}>
+                          They allow logging in if you lose your MFA device. Each code can only be used once.
+                        </p>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '0.5rem',
+                          fontFamily: 'var(--terminal-font)',
+                          fontSize: '0.8rem',
+                          color: 'var(--success)',
+                          textAlign: 'center',
+                          fontWeight: 600
+                        }}>
+                          {mfaBackupCodes.map((code, idx) => (
+                            <div key={idx} style={{ backgroundColor: 'var(--bg-tertiary)', padding: '0.25rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                              {code}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     <form onSubmit={handleVerifyMfa} style={{ width: '100%', maxWidth: '280px', textAlign: 'center' }}>
                       <div className="form-group" style={{ textAlign: 'center' }}>

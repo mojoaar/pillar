@@ -31,9 +31,75 @@ function parseCookies(cookieHeader: string): Record<string, string> {
   return list;
 }
 
+// In-Memory sliding-window rate-limiter bucket registry (Finding #1)
+const rateLimitBuckets = new Map<string, number[]>();
+
+function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {
+  const now = Date.now();
+  const timestamps = rateLimitBuckets.get(key) || [];
+  const windowStart = now - windowMs;
+  
+  // Filter out timestamps older than the sliding window
+  const recent = timestamps.filter((t) => t > windowStart);
+  
+  if (recent.length >= maxRequests) {
+    return false;
+  }
+  
+  recent.push(now);
+  rateLimitBuckets.set(key, recent);
+  return true;
+}
+
+// Express rate-limiting middleware creator
+function rateLimitMiddleware(maxRequests: number, windowMs: number) {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const ip = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+    const key = `${req.path}:${ip}`;
+    
+    if (!checkRateLimit(key, maxRequests, windowMs)) {
+      res.status(429).json({ error: 'Too many requests. Please slow down and try again later.' });
+      return;
+    }
+    
+    next();
+  };
+}
+
 app.prepare().then(() => {
   const expressApp = express();
   const server = http.createServer(expressApp);
+
+  // ==========================================
+  // HTTP SECURITY HEADERS MIDDLEWARE (Finding #3)
+  // ==========================================
+  expressApp.use((req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY'); // Prevent Framing Clickjacking
+    res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME Sniffing
+    res.setHeader('Referrer-Policy', 'same-origin');
+    
+    // Strict CSP Whitelisting Self-Origin, Google Fonts, image buffers, and WebSocket gateways
+    const csp = "default-src 'self'; " +
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                "font-src 'self' https://fonts.gstatic.com; " +
+                "img-src 'self' data: blob:; " +
+                "connect-src 'self' ws: wss:;";
+    res.setHeader('Content-Security-Policy', csp);
+    next();
+  });
+
+  // ==========================================
+  // REGISTER RATE LIMITS (Finding #1)
+  // ==========================================
+  // Throttle onboarding setup wizard
+  expressApp.use('/api/setup', rateLimitMiddleware(10, 60 * 60 * 1000)); // 10 attempts/hour
+  
+  // Throttle logins (NextAuth) and credentials check
+  expressApp.use('/api/auth', rateLimitMiddleware(30, 60 * 1000)); // 30 attempts/minute
+  
+  // Throttle MFA configurations
+  expressApp.use('/api/profile/mfa', rateLimitMiddleware(10, 60 * 1000)); // 10 attempts/minute
 
   // Initialize WebSocket Server attached to the shared HTTP server
   const wss = new WebSocketServer({ noServer: true });
@@ -63,6 +129,16 @@ app.prepare().then(() => {
     const sessionId = Math.random().toString(36).substring(2, 9);
     let sshClient: any = null;
     let shellStream: any = null;
+    let isHandshakeComplete = false;
+
+    // 5-second handshaking watchdog protection against TCP half-open socket leaks (Finding #5)
+    const handshakeTimeout = setTimeout(() => {
+      if (!isHandshakeComplete) {
+        console.warn(`[WS-SSH] Handshake timed out. Terminating session ID ${sessionId}.`);
+        ws.send(`\r\n\x1b[31m[Pillar Gateway Error] Connection handshake timed out.\x1b[0m\r\n`);
+        ws.close(1008, 'Handshake timed out');
+      }
+    }, 5000);
 
     try {
       // 1. Authenticate WS Upgrade request using NextAuth session cookies (Gotcha #8)
@@ -123,13 +199,17 @@ app.prepare().then(() => {
       });
 
       // Write Audit Log entry
-      const ip = request.headers['x-forwarded-for'] as string || request.socket.remoteAddress;
+      const ip = (request.headers['x-forwarded-for'] as string || request.socket.remoteAddress || '').split(',')[0].trim();
       await writeAudit(
         decodedUser.id as string,
         'SSH Session Initializing',
         ip,
         { connectionId: connection.id, name: connection.name, host: connection.host }
       );
+
+      // Disable watchdog trigger: handshake completed successfully
+      clearTimeout(handshakeTimeout);
+      isHandshakeComplete = true;
 
       // 4. Connect to remote node using our connection factory
       sshClient = await connectSSH({
@@ -212,6 +292,7 @@ app.prepare().then(() => {
       });
 
     } catch (err: any) {
+      clearTimeout(handshakeTimeout); // disable timeout on immediate caught failures
       console.error('[WS-SSH] Initialization failed:', err.message);
       // Send error format directly in terminal-escaped coloring so it renders cleanly in xterm.js!
       ws.send(`\r\n\x1b[31m[Pillar Gateway Error] Handshake failed: ${err.message}\x1b[0m\r\n`);

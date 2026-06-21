@@ -161,23 +161,23 @@ export default function LoginForm() {
                 🔑 Enter MFA Code
               </label>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1rem' }}>
-                Open your authenticator app and enter the 6-digit verification code.
+                Open your authenticator app and enter the rotating 6-digit code, or use a single-use backup recovery code.
               </p>
               <input
                 type="text"
                 id="totpCode"
                 className="input-field"
-                placeholder="123456"
+                placeholder="123456 or XXXX-XXXX"
                 value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                onChange={(e) => setTotpCode(e.target.value.toUpperCase().substring(0, 9))}
                 disabled={loading}
-                maxLength={6}
+                maxLength={9}
                 autoFocus
                 required
                 style={{
                   textAlign: 'center',
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.25em',
+                  fontSize: '1.25rem',
+                  letterSpacing: '0.15em',
                   padding: '0.75rem',
                   fontFamily: 'var(--terminal-font)',
                 }}

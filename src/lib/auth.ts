@@ -3,8 +3,9 @@ import { authConfig } from './auth.config';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from './db';
 import bcrypt from 'bcryptjs';
-import { decrypt } from './crypto';
+import { decrypt, encrypt } from './crypto';
 import { authenticator } from 'otplib';
+import { writeAudit } from './audit';
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -23,7 +24,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
         const email = credentials.email as string;
         const password = credentials.password as string;
-        const totpCode = credentials.totpCode as string | undefined;
+        const totpCode = (credentials.totpCode as string | undefined)?.trim().toUpperCase();
 
         // Fetch user from database
         const user = await db.user.findUnique({
@@ -51,23 +52,71 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             throw new Error('MFA_REQUIRED');
           }
 
-          if (!user.mfaSecret) {
-            throw new Error('MFA configuration error. Contact administration.');
-          }
+          // Check if the submitted code is an alphanumeric backup recovery code (format: XXXX-XXXX)
+          const isBackupCodeFormat = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(totpCode);
 
-          // Decrypt stored secret
-          let decryptedSecret: string;
-          try {
-            decryptedSecret = decrypt(user.mfaSecret);
-          } catch (err) {
-            console.error('Failed to decrypt user MFA secret:', err);
-            throw new Error('Decryption error');
-          }
+          if (isBackupCodeFormat) {
+            if (!user.mfaBackupCodes) {
+              throw new Error('Invalid MFA or recovery code.');
+            }
 
-          // Validate TOTP code using otplib
-          const isValidTotp = authenticator.check(totpCode, decryptedSecret);
-          if (!isValidTotp) {
-            throw new Error('Invalid MFA code');
+            // Decrypt the stored backup recovery codes list
+            let decryptedBackupCodesStr: string;
+            try {
+              decryptedBackupCodesStr = decrypt(user.mfaBackupCodes);
+            } catch (err) {
+              console.error('Failed to decrypt user backup codes:', err);
+              throw new Error('Decryption error');
+            }
+
+            const backupCodesArray = decryptedBackupCodesStr.split(',');
+            const matchedIndex = backupCodesArray.indexOf(totpCode);
+
+            if (matchedIndex === -1) {
+              throw new Error('Invalid MFA or recovery code.');
+            }
+
+            // Code matches! Remove the used single-use code from the array
+            backupCodesArray.splice(matchedIndex, 1);
+            
+            // Re-encrypt and save remaining backup codes
+            const updatedBackupCodesStr = backupCodesArray.length > 0 
+              ? encrypt(backupCodesArray.join(',')) 
+              : null;
+
+            await db.user.update({
+              where: { id: user.id },
+              data: { mfaBackupCodes: updatedBackupCodesStr },
+            });
+
+            // Log the recovery code redemption event
+            await writeAudit(
+              user.id,
+              'MFA Backup Code Redeemed',
+              null,
+              { message: `User redeemed single-use recovery code. ${backupCodesArray.length} codes remaining.` }
+            );
+
+          } else {
+            // Standard TOTP Verification
+            if (!user.mfaSecret) {
+              throw new Error('MFA configuration error. Contact administration.');
+            }
+
+            // Decrypt stored secret
+            let decryptedSecret: string;
+            try {
+              decryptedSecret = decrypt(user.mfaSecret);
+            } catch (err) {
+              console.error('Failed to decrypt user mfa secret:', err);
+              throw new Error('Decryption error');
+            }
+
+            // Validate TOTP code using otplib
+            const isValidTotp = authenticator.check(totpCode, decryptedSecret);
+            if (!isValidTotp) {
+              throw new Error('Invalid MFA code');
+            }
           }
         }
 

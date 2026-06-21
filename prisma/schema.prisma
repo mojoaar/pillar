@@ -18,6 +18,7 @@ model User {
   mfaSecret    String?            // encrypted AES-256-GCM
   mfaEnabled   Boolean            @default(false)
   mfaEnforced  Boolean            @default(false)
+  mfaBackupCodes String?          // encrypted AES-256-GCM comma-separated codes
   isSuspended  Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
