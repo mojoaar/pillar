@@ -635,7 +635,7 @@ export default function ConnectionsCatalog({
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Saving Profile...' : editingConnection ? 'Apply Changes' : 'Create SSH Profile'}
+                  {loading ? 'Saving Profile...' : editingConnection ? 'Apply Changes' : 'Create Profile'}
                 </button>
               </div>
             </form>
