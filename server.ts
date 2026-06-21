@@ -861,7 +861,8 @@ app.prepare().then(() => {
 
             console.log('[WS-RDP] Received guacd argsList:', argsList);
             console.log('[WS-RDP] Compiled connect values length:', argValues.length);
-            const inst = guacInstruction('connect', ...argValues);
+            // Prepend empty string representing the connection ID for a brand-new session
+            const inst = guacInstruction('connect', '', ...argValues);
             console.log('[WS-RDP] Writing connect instruction (first 150 chars):', inst.substring(0, 150));
 
             // Send standard connect instruction to finalize handshake
