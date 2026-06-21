@@ -62,7 +62,7 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
         };
 
         client.onerror = (errorObj: any) => {
-          console.error('[Guacamole Client Error]', errorObj);
+          console.error('[Guacamole Client Error]', errorObj.message || errorObj);
           setError(`Gateway Handshake Error: ${errorObj.message || 'Connection refused.'}`);
         };
 

@@ -5,25 +5,25 @@ import ClientSuppression from '@/components/theme/ClientSuppression';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Pillar — Homelab Remote Access Gateway',
+    default: 'Pillar — Remote Access Gateway',
     template: '%s | Pillar',
   },
-  description: 'Self-hosted, secure browser-based remote-access gateway for homelabs. Launch SSH, VNC, and RDP bridges to your servers with MFA protection.',
-  keywords: ['homelab', 'remote access', 'SSH', 'VNC', 'RDP', 'gateway', 'self-hosted', 'Proxmox'],
+  description: 'Self-hosted, secure browser-based remote-access gateway. Launch SSH, VNC, and RDP bridges to your servers with MFA protection.',
+  keywords: ['remote access', 'SSH', 'VNC', 'RDP', 'gateway', 'self-hosted', 'Proxmox'],
   authors: [{ name: 'Pillar' }],
   creator: 'Pillar',
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   openGraph: {
-    title: 'Pillar — Homelab Remote Access Gateway',
-    description: 'Secure browser-based SSH, VNC, and RDP bridges for your homelab. Multi-factor authentication, encrypted at rest.',
+    title: 'Pillar — Remote Access Gateway',
+    description: 'Secure browser-based SSH, VNC, and RDP bridges. Multi-factor authentication, encrypted at rest.',
     siteName: 'Pillar',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary',
-    title: 'Pillar — Homelab Remote Access Gateway',
-    description: 'Secure browser-based SSH, VNC, and RDP bridges for your homelab.',
+    title: 'Pillar — Remote Access Gateway',
+    description: 'Secure browser-based SSH, VNC, and RDP bridges.',
   },
   robots: {
     index: true,

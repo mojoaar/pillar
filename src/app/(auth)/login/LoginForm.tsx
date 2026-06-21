@@ -92,7 +92,7 @@ export default function LoginForm() {
           PILLAR
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-          Homelab Remote Access Gateway
+          Remote Access Gateway
         </p>
 
         {success && (
