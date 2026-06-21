@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     // Retrieve decrypted config
     const config = await getPluginConfig('proxmox-ve');
     if (!config) {
+      const record = await (await import('@/lib/db')).db.plugin.findUnique({ where: { id: 'proxmox-ve' } });
+      console.log('[Proxmox API] Plugin record:', record ? `enabled=${record.enabled}, config=${!!record.config}` : 'NOT FOUND');
       return NextResponse.json({ enabled: false, message: 'Proxmox VE integration is disabled or not configured.' });
     }
 
