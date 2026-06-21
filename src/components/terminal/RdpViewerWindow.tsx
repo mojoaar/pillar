@@ -13,12 +13,11 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
   const clientRef = useRef<any>(null);
 
   useEffect(() => {
-    // 1. Dynamically load guacamole-common-js on-demand from local static directory
-    const script = document.createElement('script');
-    script.src = '/js/guacamole-common.min.js';
-    script.async = true;
-    
-    script.onload = () => {
+    let active = true;
+    let client: any = null;
+
+    const initializeGuacamole = () => {
+      if (!active) return;
       if (!containerRef.current) return;
       
       const Guacamole = (window as any).Guacamole;
@@ -36,7 +35,7 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
         const tunnel = new Guacamole.WebSocketTunnel(tunnelUrl);
         
         // 3. Instantiate Guacamole Client
-        const client = new Guacamole.Client(tunnel);
+        client = new Guacamole.Client(tunnel);
         clientRef.current = client;
 
         // 4. Attach canvas display element to viewport container
@@ -51,6 +50,7 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
 
         // 5. Handle status states
         client.onstatechange = (state: number) => {
+          if (!active) return;
           switch (state) {
             case 0: setStatus('Idle'); break;
             case 1: setStatus('Connecting...'); break;
@@ -62,6 +62,7 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
         };
 
         client.onerror = (errorObj: any) => {
+          if (!active) return;
           console.error('[Guacamole Client Error]', errorObj.message || errorObj);
           setError(`Gateway Handshake Error: ${errorObj.message || 'Connection refused.'}`);
         };
@@ -73,17 +74,17 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
         const mouse = new Guacamole.Mouse(displayElement);
         
         mouse.onmousedown = mouse.onmouseup = mouse.onmousemove = (mouseState: any) => {
-          client.sendMouseState(mouseState);
+          if (client) client.sendMouseState(mouseState);
         };
 
         const keyboard = new Guacamole.Keyboard(document);
         
         keyboard.onkeydown = (keysym: any) => {
-          client.sendKeyEvent(1, keysym);
+          if (client) client.sendKeyEvent(1, keysym);
         };
         
         keyboard.onkeyup = (keysym: any) => {
-          client.sendKeyEvent(0, keysym);
+          if (client) client.sendKeyEvent(0, keysym);
         };
 
       } catch (err: any) {
@@ -92,18 +93,49 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
       }
     };
 
-    script.onerror = () => {
-      setError('Failed to load Guacamole assets. Please refresh or verify server status.');
-    };
-
-    document.body.appendChild(script);
-
-    // 8. Cleanup and disconnect on unmount
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.disconnect();
+    const Guacamole = (window as any).Guacamole;
+    if (Guacamole) {
+      initializeGuacamole();
+    } else {
+      // Check if script is already appended
+      let script = document.querySelector('script[src="/js/guacamole-common.min.js"]') as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.src = '/js/guacamole-common.min.js';
+        script.async = true;
+        document.body.appendChild(script);
       }
-      document.body.removeChild(script);
+
+      const onLoad = () => {
+        initializeGuacamole();
+      };
+
+      const onError = () => {
+        if (active) {
+          setError('Failed to load Guacamole assets. Please refresh or verify server status.');
+        }
+      };
+
+      script.addEventListener('load', onLoad);
+      script.addEventListener('error', onError);
+
+      return () => {
+        active = false;
+        if (client) {
+          client.disconnect();
+        }
+        if (script) {
+          script.removeEventListener('load', onLoad);
+          script.removeEventListener('error', onError);
+        }
+      };
+    }
+
+    return () => {
+      active = false;
+      if (client) {
+        client.disconnect();
+      }
     };
   }, [connectionId]);
 
