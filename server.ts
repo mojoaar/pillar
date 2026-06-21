@@ -1026,6 +1026,7 @@ app.prepare().then(() => {
   // Intercept HTTP server 'upgrade' requests — validate Origin and session cookie BEFORE upgrading
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = parseUrl(request.url || '');
+    console.log(`[WS Upgrade Request] path=${pathname} url=${request.url}`);
 
     // Only apply strict Origin and session validation on our custom WebSocket API routes,
     // allowing Next.js HMR WebSocket connections (/_next/webpack-hmr) to bypass safely (Finding #hmr-bypass)
@@ -1049,6 +1050,7 @@ app.prepare().then(() => {
       const cookies = parseCookies(request.headers.cookie || '');
       const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
       const sessionToken = cookies[cookieName];
+      console.log(`[WS Upgrade Auth] path=${pathname} cookieName=${cookieName} tokenFound=${!!sessionToken}`);
 
       if (!sessionToken) {
         console.warn(`[WS Upgrade] Rejected unauthenticated WebSocket upgrade to: ${pathname}`);
