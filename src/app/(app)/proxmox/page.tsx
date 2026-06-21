@@ -321,15 +321,17 @@ export default function ProxmoxDashboard() {
                   }}>
                     {isRunning ? (
                       <>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => window.open(`/proxmox/console?node=${encodeURIComponent(vm.node)}&vmid=${vm.vmid}&type=${vm.type}`, `pve-console-${vm.vmid}`, 'width=1024,height=768')}
-                          title="Open live VNC console to this instance"
-                          style={{ padding: '0.25rem 0.5rem' }}
-                        >
-                          <Tv size={12} />
-                          <span style={{ fontSize: '0.75rem' }}>Console</span>
-                        </button>
+                        {vm.type === 'qemu' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => window.open(`/proxmox/console?node=${encodeURIComponent(vm.node)}&vmid=${vm.vmid}&type=${vm.type}`, `pve-console-${vm.vmid}`, 'width=1024,height=768')}
+                            title="Open live VNC console"
+                            style={{ padding: '0.25rem 0.5rem' }}
+                          >
+                            <Tv size={12} />
+                            <span style={{ fontSize: '0.75rem' }}>Console</span>
+                          </button>
+                        )}
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => handleVmAction(vm, 'reboot')}
