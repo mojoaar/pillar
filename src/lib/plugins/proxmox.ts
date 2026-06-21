@@ -129,6 +129,29 @@ export class ProxmoxClient {
   }
 
   /**
+   * Tries to get the actual IP address of a VM/LXC via QEMU guest agent.
+   * Returns the first IPv4 address found, or null if the guest agent is not available.
+   */
+  async getVmIp(node: string, vmid: number, type: 'qemu' | 'lxc'): Promise<string | null> {
+    try {
+      const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/agent/network-get-interfaces`;
+      const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+      const ifaces = res.data?.result || [];
+      for (const iface of ifaces) {
+        const ips = iface['ip-addresses'] || [];
+        for (const ip of ips) {
+          if (ip['ip-address-type'] === 'ipv4' && ip['ip-address'] !== '127.0.0.1') {
+            return ip['ip-address'];
+          }
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Sends a power state action/command to a target VM or LXC container
    * @param node The Proxmox node hosting the VM
    * @param vmid The numeric virtual machine identifier

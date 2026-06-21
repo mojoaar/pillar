@@ -89,10 +89,15 @@ export async function GET(request: NextRequest) {
       vmsAndContainers.map(async (r: any) => {
         try {
           const cfg = await client.getVmConfig(r.node, r.vmid, r.type);
-          // Extract bridge name from net0 (e.g., "virtio=XX,bridge=vmbr0,firewall=1")
+          // Extract bridge name as fallback
           const netInfo = (cfg.net0 || cfg.net1 || '');
           const bridgeMatch = netInfo.match(/bridge=([^,\s]+)/);
-          return { ...r, network: bridgeMatch ? bridgeMatch[1] : null };
+          // Try to get actual IP via guest agent, fall back to bridge name
+          let ip: string | null = null;
+          try {
+            ip = await client.getVmIp(r.node, r.vmid, r.type);
+          } catch {}
+          return { ...r, network: ip || (bridgeMatch ? bridgeMatch[1] : null) };
         } catch {
           return r;
         }
