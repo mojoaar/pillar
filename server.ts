@@ -845,6 +845,7 @@ app.prepare().then(() => {
 
             // Map connection arguments to the matching guacd instruction parameters
             const argValues = argsList.map((argName) => {
+              if (argName.startsWith('VERSION_')) return argName;
               if (argName === 'hostname') return connection.host;
               if (argName === 'port') return (connection.port || 3389).toString();
               if (argName === 'username') return connection.username;
