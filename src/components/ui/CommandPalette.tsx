@@ -301,8 +301,18 @@ export default function CommandPalette() {
     action: () => { window.location.href = `/connections/${conn.id}`; }
   }));
 
-  // Combine lists
-  const allCommands = [...connectionCommands, ...staticCommands];
+  // Group filtered results by category for organized rendering
+  const categories: ('Connections' | 'Themes' | 'Fonts' | 'Navigation')[] = [
+    'Connections',
+    'Navigation',
+    'Themes',
+    'Fonts',
+  ];
+
+  // Combine lists and sort dynamically to guarantee perfect keyboard navigation sequence (Finding #palette-sort)
+  const allCommands = [...connectionCommands, ...staticCommands].sort((a, b) => {
+    return categories.indexOf(a.category) - categories.indexOf(b.category);
+  });
 
   // 5. Filter search queries inside Combined catalog in real-time
   const filteredCommands = allCommands.filter((cmd) => {
@@ -341,14 +351,6 @@ export default function CommandPalette() {
   }, [isOpen, activeIndex, filteredCommands]);
 
   if (!isOpen) return null;
-
-  // Group filtered results by category for organized rendering
-  const categories: ('Connections' | 'Themes' | 'Fonts' | 'Navigation')[] = [
-    'Connections',
-    'Themes',
-    'Fonts',
-    'Navigation',
-  ];
 
   // Calculate absolute index positions inside categories to map active classes properly
   let absoluteItemCounter = 0;
