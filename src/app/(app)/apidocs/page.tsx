@@ -257,6 +257,18 @@ const apiSpecs: APIEndpoint[] = [
       },
       ok: true
     }
+  },
+  {
+    id: 'terminate-session',
+    group: 'Admin',
+    method: 'DELETE',
+    path: '/api/admin/sessions/[id]',
+    desc: 'Forcefully disconnect and terminate an active, running WebSocket SSH or VNC remote session tunnel by its session ID. Restricted to administrators (ADMIN role) only.',
+    auth: 'ADMIN',
+    resBody: {
+      ok: true,
+      message: 'Active session terminated successfully.'
+    }
   }
 ];
 
