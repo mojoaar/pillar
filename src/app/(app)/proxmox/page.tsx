@@ -49,9 +49,15 @@ export default function ProxmoxDashboard() {
       setConnected(data.connected || false);
       
       if (data.enabled && data.connected && data.data) {
-        setNodes(data.data.nodes || []);
-        // Extract VMs (qemu) and Containers (lxc)
-        setVms(data.data.resources || []);
+        // Merge node metrics from cluster resources into basic node names
+        const nodeResources = (data.data.resources || []).filter((r: any) => r.type === 'node');
+        const nodesWithMetrics = (data.data.nodes || []).map((node: any) => {
+          const metrics = nodeResources.find((r: any) => r.node === node.node) || {};
+          return { ...node, ...metrics };
+        });
+        setNodes(nodesWithMetrics);
+        // Only VMs and containers — exclude node-type resources
+        setVms((data.data.resources || []).filter((r: any) => r.type === 'qemu' || r.type === 'lxc'));
       } else if (data.enabled && !data.connected) {
         setError(data.message || 'Could not establish connection to the remote Proxmox VE hypervisor.');
       }
