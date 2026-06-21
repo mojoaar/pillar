@@ -614,16 +614,16 @@ export default function ConnectionsCatalog({
                     />
                   </div>
                   {(protocol === 'RDP' || protocol === 'VNC') && (
-                    <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>
                       <input
                         type="checkbox"
                         id="conn-ignoreCert"
                         checked={ignoreCert}
                         onChange={(e) => setIgnoreCert(e.target.checked)}
                         disabled={loading}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }}
                       />
-                      <label htmlFor="conn-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', marginBottom: 0 }}>
+                      <label htmlFor="conn-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', userSelect: 'none', margin: 0, fontWeight: 500, display: 'inline', width: 'auto' }}>
                         Ignore SSL / TLS certificate errors (For self-signed homelab certs)
                       </label>
                     </div>

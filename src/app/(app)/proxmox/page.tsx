@@ -596,21 +596,21 @@ export default function ProxmoxDashboard() {
                          placeholder="••••••••"
                        />
                      </div>
-                     {(protocol === 'RDP' || protocol === 'VNC') && (
-                       <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                         <input
-                           type="checkbox"
-                           id="import-ignoreCert"
-                           checked={ignoreCert}
-                           onChange={(e) => setIgnoreCert(e.target.checked)}
-                           disabled={saveLoading}
-                           style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                         />
-                         <label htmlFor="import-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', marginBottom: 0, fontWeight: 600, color: 'var(--text-primary)' }}>
-                           Ignore SSL / TLS certificate errors (For self-signed homelab certs)
-                         </label>
-                       </div>
-                     )}
+                      {(protocol === 'RDP' || protocol === 'VNC') && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>
+                          <input
+                            type="checkbox"
+                            id="import-ignoreCert"
+                            checked={ignoreCert}
+                            onChange={(e) => setIgnoreCert(e.target.checked)}
+                            disabled={saveLoading}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }}
+                          />
+                          <label htmlFor="import-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', userSelect: 'none', margin: 0, fontWeight: 500, display: 'inline', width: 'auto' }}>
+                            Ignore SSL / TLS certificate errors (For self-signed homelab certs)
+                          </label>
+                        </div>
+                      )}
                    </>
                  ) : (
                   <>
