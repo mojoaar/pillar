@@ -320,8 +320,10 @@ app.prepare().then(() => {
             }
           });
 
-          ws.on('close', async () => {
-            console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}.`);
+          ws.on('close', async (code, reason) => {
+            const reasonStr = reason?.toString() || '';
+            const isPermanent = reasonStr === 'terminate';
+            console.log(`[WS-SSH] Web client disconnected from resumed session ID ${sessionId}. permanent=${isPermanent}`);
             sessionRegistry.delete(sessionId);
             
             if (session) {
@@ -333,8 +335,12 @@ app.prepare().then(() => {
               }
               session.activeSockets.delete(ws);
 
-              // If no active browser tabs are connected to this SSH session, start the 5-minute persistent watchdog!
-              if (session.activeSockets.size === 0) {
+              if (isPermanent) {
+                console.log(`[WS-SSH] Permanent termination requested. Closing session: ${sessionKey}`);
+                try { session.shellStream.end(); } catch (e) {}
+                try { session.sshClient.end(); } catch (e) {}
+                persistentSshSessions.delete(sessionKey);
+              } else if (session.activeSockets.size === 0) {
                 console.log(`[WS-SSH] Session ${sessionKey} is idle. Starting 5-minute persistent watchdog.`);
                 
                 session.disconnectTimeout = setTimeout(() => {
@@ -481,8 +487,10 @@ app.prepare().then(() => {
           }
         });
 
-        ws.on('close', async () => {
-          console.log(`[WS-SSH] Web client disconnected from fresh session ID ${sessionId}.`);
+        ws.on('close', async (code, reason) => {
+          const reasonStr = reason?.toString() || '';
+          const isPermanent = reasonStr === 'terminate';
+          console.log(`[WS-SSH] Web client disconnected from fresh session ID ${sessionId}. permanent=${isPermanent}`);
           sessionRegistry.delete(sessionId);
           
           const activeSess = persistentSshSessions.get(sessionKey);
@@ -494,8 +502,12 @@ app.prepare().then(() => {
             }
             activeSess.activeSockets.delete(ws);
 
-            // Start 5-minute persistent watchdog if no active sockets remain
-            if (activeSess.activeSockets.size === 0) {
+            if (isPermanent) {
+              console.log(`[WS-SSH] Permanent termination requested. Closing session: ${sessionKey}`);
+              try { shellStream.end(); } catch (e) {}
+              try { sshClient.end(); } catch (e) {}
+              persistentSshSessions.delete(sessionKey);
+            } else if (activeSess.activeSockets.size === 0) {
               console.log(`[WS-SSH] Session ${sessionKey} is idle. Starting 5-minute persistent watchdog.`);
               
               activeSess.disconnectTimeout = setTimeout(() => {
