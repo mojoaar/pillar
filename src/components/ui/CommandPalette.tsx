@@ -59,7 +59,7 @@ export default function CommandPalette() {
     fetchConnections();
   }, [isOpen]); // Re-fetch on open to keep catalog updated
 
-  // 2. Traps modifier-independent custom chords: Cmd + K / Ctrl + K (Gotcha #18, #19)
+  // 2. Traps modifier-independent custom chords: Cmd + K / Ctrl + K (Gotcha #18, #19) and custom window events (Finding #search-trigger)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Physical key mapping ensures layout/language independence (Gotcha #18)
@@ -75,8 +75,19 @@ export default function CommandPalette() {
       }
     };
 
+    const handleCustomToggle = () => {
+      setIsOpen((prev) => !prev);
+      setSearch('');
+      setActiveIndex(0);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('toggle-command-palette', handleCustomToggle);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('toggle-command-palette', handleCustomToggle);
+    };
   }, [isOpen]);
 
   // Focus input automatically on open

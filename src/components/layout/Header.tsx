@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@/components/theme/ThemeProvider';
-import { Sun, Moon, Terminal, X, ShieldAlert, Radio } from 'lucide-react';
+import { Sun, Moon, Terminal, X, ShieldAlert, Search } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
 import styles from './Header.module.css';
 
@@ -95,6 +95,43 @@ export default function Header({ user }: HeaderProps) {
       {/* Page Title & Breadcrumbs */}
       <div className={styles.leftSection}>
         <span className={styles.pageTitle}>Connection Portal</span>
+
+        {/* Clickable search trigger button showing shortcut (Spotlight Raycast style!) (Finding #search-trigger-btn) */}
+        <button 
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('toggle-command-palette'));
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            backgroundColor: 'var(--bg-tertiary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--border-radius)',
+            padding: '0.45rem 1rem',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '0.825rem',
+            fontWeight: 500,
+            marginLeft: '1.5rem',
+            transition: 'all 0.15s ease'
+          }}
+          title="Toggle global search & command palette (Shortcut: Cmd+K / Ctrl+K)"
+        >
+          <Search size={14} style={{ color: 'var(--accent)' }} />
+          <span style={{ color: 'var(--text-secondary)' }}>Search or type a command...</span>
+          <kbd style={{ 
+            backgroundColor: 'var(--bg-primary)', 
+            padding: '0.15rem 0.35rem', 
+            borderRadius: '4px', 
+            fontSize: '0.7rem', 
+            border: '1px solid var(--border)',
+            color: 'var(--text-secondary)',
+            fontFamily: 'var(--terminal-font)'
+          }}>
+            {typeof navigator !== 'undefined' && navigator.platform.indexOf('Mac') !== -1 ? '⌘K' : 'Ctrl+K'}
+          </kbd>
+        </button>
       </div>
 
       {/* Control items & selectors */}
