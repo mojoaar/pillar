@@ -966,6 +966,10 @@ app.prepare().then(() => {
         headers: { Authorization: `PVEAPIToken=${config.apiToken}` },
       });
 
+      // Buffer browser messages while PVE WebSocket is connecting
+      const buffer: any[] = [];
+      let pveOpen = false;
+
       pveWs.on('open', () => {
         console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel open. Session: ${sessionId}`);
         sessionRegistry.set(sessionId, {
@@ -976,6 +980,10 @@ app.prepare().then(() => {
           connectionId: vmid,
           protocol: 'PVE-VNC',
         });
+        // Flush buffered browser messages
+        pveOpen = true;
+        for (const msg of buffer) pveWs.send(msg);
+        buffer.length = 0;
       });
 
       pveWs.on('message', (data: any) => {
@@ -993,7 +1001,11 @@ app.prepare().then(() => {
       });
 
       ws.on('message', (message: any) => {
-        if (pveWs && pveWs.readyState === WebSocket.OPEN) pveWs.send(message);
+        if (pveOpen) {
+          pveWs.send(message);
+        } else {
+          buffer.push(message);
+        }
       });
 
       ws.on('close', () => {
