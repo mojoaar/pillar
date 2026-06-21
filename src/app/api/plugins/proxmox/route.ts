@@ -48,11 +48,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch nodes, resources, and real-time node status in parallel
-    const [nodes, resources] = await Promise.all([
+    // Fetch nodes, resources, cluster status (for IPs), and node statuses
+    const [nodes, resources, clusterStatus] = await Promise.all([
       client.getNodes(),
-      client.getClusterResources()
+      client.getClusterResources(),
+      client.getClusterStatus().catch(() => []),
     ]);
+
+    // Merge cluster IP data into node info
+    const nodeIps = new Map(clusterStatus.map((cs: any) => [cs.name, cs.ip]));
 
     // Fetch real-time CPU/Memory for each node (gracefully skip on permission errors)
     const nodeStatuses = await Promise.all(
@@ -71,6 +75,7 @@ export async function GET(request: NextRequest) {
       const stats = nodeStatuses.find((s: any) => s.node === n.node) || {};
       return {
         ...n,
+        ip: nodeIps.get(n.node) || null,
         cpu: stats.cpu ?? n.cpu,
         maxcpu: stats.cpuinfo?.cpus ?? n.maxcpu,
         mem: stats.memory?.used ?? n.mem,
@@ -78,12 +83,27 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    // Filter VMs/LXCs and enrich with config data
+    const vmsAndContainers = resources.filter((r: any) => r.type === 'qemu' || r.type === 'lxc');
+    const enrichedResources = await Promise.all(
+      vmsAndContainers.map(async (r: any) => {
+        try {
+          const cfg = await client.getVmConfig(r.node, r.vmid, r.type);
+          // Extract first IP-like value from config (net0 typically has bridge info)
+          const netInfo = cfg.net0 || cfg.net1 || '';
+          return { ...r, network: netInfo || null };
+        } catch {
+          return r;
+        }
+      })
+    );
+
     return NextResponse.json({
       enabled: true,
       connected: true,
       data: {
         nodes: enrichedNodes,
-        resources: resources.filter((r) => r.type === 'qemu' || r.type === 'lxc' || r.type === 'node')
+        resources: enrichedResources,
       },
       ok: true
     });

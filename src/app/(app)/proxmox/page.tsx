@@ -21,6 +21,7 @@ interface ProxmoxResource {
 interface NodeResource {
   node: string;
   status: string;
+  ip?: string;
   cpu?: number;
   maxcpu?: number;
   mem?: number;
@@ -35,6 +36,7 @@ export default function ProxmoxDashboard() {
   const [vms, setVms] = useState<ProxmoxResource[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -194,11 +196,18 @@ export default function ProxmoxDashboard() {
               const memUsage = node.mem && node.maxmem ? (node.mem / node.maxmem * 100).toFixed(1) : '0.0';
               
               return (
-                <div key={node.node} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div key={node.node} className="card" style={{
+                  display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                  cursor: 'pointer',
+                  borderColor: selectedNode === node.node ? 'var(--accent)' : 'var(--border)',
+                }} onClick={() => setSelectedNode(selectedNode === node.node ? null : node.node)}>
                   <div className="flex-between">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Activity size={18} style={{ color: node.status === 'online' ? 'var(--success)' : 'var(--danger)' }} />
-                      <strong style={{ fontSize: '1.05rem' }}>{node.node}</strong>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <strong style={{ fontSize: '1.05rem' }}>{node.node}</strong>
+                        {node.ip && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--terminal-font)' }}>{node.ip}</span>}
+                      </div>
                     </div>
                     <span className={`badge ${node.status === 'online' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.65rem' }}>
                       {node.status}
@@ -234,8 +243,13 @@ export default function ProxmoxDashboard() {
           </div>
 
           {/* VMs / LXC Grid */}
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginTop: '1rem' }}>
-            Virtual Machines & Containers
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Virtual Machines & Containers{selectedNode ? ` — ${selectedNode}` : ''}</span>
+            {selectedNode && (
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedNode(null)}>
+                Show All
+              </button>
+            )}
           </h2>
 
           <div style={{
@@ -243,7 +257,9 @@ export default function ProxmoxDashboard() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '1.25rem'
           }}>
-            {vms.map((vm) => {
+            {vms
+              .filter((vm) => !selectedNode || vm.node === selectedNode)
+              .map((vm) => {
               const isRunning = vm.status === 'running';
               const cpuUsage = vm.cpu && vm.maxcpu ? (vm.cpu * 100).toFixed(1) : '0.0';
               const memUsage = vm.mem && vm.maxmem ? (vm.mem / vm.maxmem * 100).toFixed(1) : '0.0';
@@ -263,6 +279,7 @@ export default function ProxmoxDashboard() {
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{vm.name}</strong>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ID: {vm.vmid} • Node: {vm.node}</span>
+                        {(vm as any).network && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontFamily: 'var(--terminal-font)' }}>{(vm as any).network}</span>}
                       </div>
                     </div>
 

@@ -111,6 +111,24 @@ export class ProxmoxClient {
   }
 
   /**
+   * Fetches cluster status (includes node IP addresses).
+   */
+  async getClusterStatus(): Promise<any[]> {
+    const url = `${this.apiUrl}/cluster/status`;
+    const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+    return res.data || [];
+  }
+
+  /**
+   * Fetches VM/LXC config (includes network interface info).
+   */
+  async getVmConfig(node: string, vmid: number, type: 'qemu' | 'lxc'): Promise<any> {
+    const url = `${this.apiUrl}/nodes/${node}/${type}/${vmid}/config`;
+    const res = await httpsRequest(url, 'GET', this.getHeaders(), undefined, this.verifySsl);
+    return res.data || {};
+  }
+
+  /**
    * Sends a power state action/command to a target VM or LXC container
    * @param node The Proxmox node hosting the VM
    * @param vmid The numeric virtual machine identifier
