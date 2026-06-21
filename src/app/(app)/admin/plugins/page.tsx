@@ -95,8 +95,8 @@ export default function AdminPluginsPage() {
       setSuccess(`${editingPlugin.name} configured successfully.`);
       setEditingPlugin(null);
       
-      // Refresh list
-      await fetchPlugins();
+      // Hard reload so sidebar re-renders with updated plugin enabled state
+      setTimeout(() => window.location.reload(), 500);
     } catch (err: any) {
       setError(err.message || 'An error occurred while saving.');
     } finally {
