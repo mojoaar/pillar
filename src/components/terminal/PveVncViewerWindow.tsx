@@ -26,7 +26,6 @@ export default function PveVncViewerWindow({ node, vmid, type }: PveVncViewerWin
       
       const rfb = new RFB(containerRef.current, wsUrl, {
         credentials: {},
-        wsProtocols: ['binary'],
         shared: true,
       });
 
