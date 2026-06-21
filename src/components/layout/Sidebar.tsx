@@ -36,8 +36,8 @@ export default function Sidebar({ user }: SidebarProps) {
 
   // Helper to determine if a route is currently active
   const isActive = (path: string) => {
-    if (path === '/dashboard') {
-      return pathname === '/dashboard';
+    if (path === '/dashboard' || path === '/admin') {
+      return pathname === path;
     }
     return pathname.startsWith(path);
   };
