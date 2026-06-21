@@ -649,6 +649,48 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
         <div className="card" style={{ maxWidth: '560px' }}>
           <form onSubmit={handlePreferencesSubmit}>
             <div className="form-group">
+              <label htmlFor="pref-theme">Visual Theme Palette</label>
+              <select
+                id="pref-theme"
+                className="input-field"
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as ThemeName)}
+                style={{ cursor: 'pointer' }}
+              >
+                <option value="dracula-dark">Dracula (Dark)</option>
+                <option value="dracula-light">Dracula (Light)</option>
+                <option value="nord-dark">Nord (Dark)</option>
+                <option value="nord-light">Nord (Light)</option>
+                <option value="cyberpunk-dark">Cyberpunk (Dark)</option>
+                <option value="cyberpunk-light">Cyberpunk (Light)</option>
+                <option value="github-dark">GitHub (Dark)</option>
+                <option value="github-light">GitHub (Light)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="pref-font">Terminal Monospace Font</label>
+              <select
+                id="pref-font"
+                className="input-field"
+                value={font}
+                onChange={(e) => setFont(e.target.value as FontName)}
+                style={{ cursor: 'pointer' }}
+              >
+                <option value="jetbrains-mono">JetBrains Mono</option>
+                <option value="fira-code">Fira Code</option>
+                <option value="source-code-pro">Source Code Pro</option>
+                <option value="inconsolata">Inconsolata</option>
+                <option value="roboto-mono">Roboto Mono</option>
+                <option value="ubuntu-mono">Ubuntu Mono</option>
+                <option value="ibm-plex-mono">IBM Plex Mono</option>
+                <option value="anonymous-pro">Anonymous Pro</option>
+                <option value="cascadia-code">Cascadia Mono</option>
+                <option value="sf-mono">SF Mono (System)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
               <label>Clock Time Format</label>
               <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.25rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>

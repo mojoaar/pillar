@@ -22,7 +22,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           throw new Error('Email and password are required');
         }
 
-        const email = credentials.email as string;
+        const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
         const totpCode = (credentials.totpCode as string | undefined)?.trim().toUpperCase();
 
@@ -32,16 +32,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         });
 
         if (!user) {
+          // Log failed login attempt (unregistered email)
+          await writeAudit(null, 'Login Failed', null, { email, reason: 'Email not registered' });
           throw new Error('Invalid credentials');
         }
 
         if (user.isSuspended) {
+          // Log failed login attempt (suspended account)
+          await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Account suspended' });
           throw new Error('Account suspended. Contact administration.');
         }
 
         // Validate password using bcryptjs
         const isValidPassword = await bcrypt.compare(password, user.passwordHash);
         if (!isValidPassword) {
+          // Log failed login attempt (password mismatch)
+          await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect password' });
           throw new Error('Invalid credentials');
         }
 
@@ -57,6 +63,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
           if (isBackupCodeFormat) {
             if (!user.mfaBackupCodes) {
+              await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Missing recovery codes' });
               throw new Error('Invalid MFA or recovery code.');
             }
 
@@ -73,6 +80,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             const matchedIndex = backupCodesArray.indexOf(totpCode);
 
             if (matchedIndex === -1) {
+              // Log failed login attempt (invalid recovery code)
+              await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect recovery code' });
               throw new Error('Invalid MFA or recovery code.');
             }
 
@@ -115,6 +124,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             // Validate TOTP code using otplib
             const isValidTotp = authenticator.check(totpCode, decryptedSecret);
             if (!isValidTotp) {
+              // Log failed login attempt (invalid TOTP code)
+              await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect MFA code' });
               throw new Error('Invalid MFA code');
             }
           }
@@ -131,4 +142,28 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  // Event hooks to capture security audit events (Finding #audit-events)
+  events: {
+    async signIn({ user }) {
+      if (user && user.id) {
+        await writeAudit(
+          user.id,
+          'Login Succeeded',
+          null,
+          { message: `User logged in successfully. Email: ${user.email}` }
+        );
+      }
+    },
+    async signOut(message: any) {
+      const token = message?.token;
+      if (token && token.id) {
+        await writeAudit(
+          token.id as string,
+          'Logout Succeeded',
+          null,
+          { message: 'User logged out of active gateway session.' }
+        );
+      }
+    }
+  }
 });

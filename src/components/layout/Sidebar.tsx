@@ -21,6 +21,7 @@ interface SidebarProps {
     email: string;
     username: string;
     role: string;
+    avatarUrl: string | null;
   };
 }
 
@@ -138,7 +139,11 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Clickable User profile card section */}
         <Link href="/settings" className={styles.userSection} title="Navigate to Profile Settings">
           <div className={styles.avatar}>
-            {getInitials(user.name)}
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className={styles.avatarImage} />
+            ) : (
+              getInitials(user.name)
+            )}
           </div>
           <div className={styles.userInfo}>
             <span className={styles.userName}>{user.name}</span>

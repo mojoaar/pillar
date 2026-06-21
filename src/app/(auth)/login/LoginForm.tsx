@@ -133,7 +133,7 @@ export default function LoginForm() {
                   type="email"
                   id="email"
                   className="input-field"
-                  placeholder="admin@homelab.local"
+                  placeholder="admin@pillar.local"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
