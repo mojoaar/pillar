@@ -80,12 +80,14 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 ## Roadmap Enhancements (Backlog)
 
 ### Phase 9: VNC Client Remote Desktop
-- [ ] Node.js RFB (VNC) proxy backend built on Express using a WebSocket to TCP stream bridge
-- [ ] Client interface utilizing `novnc` canvas rendering
+- [x] Node.js RFB (VNC) proxy backend built on Express using a WebSocket to TCP stream bridge
+- [x] Client interface utilizing `@novnc/novnc` canvas rendering
 
 ### Phase 10: RDP Gateway Integration
-- [ ] Docker Compose sidecar configurations using Apache Guacamole's daemon (`guacd`)
-- [ ] Express proxy gateway connecting browser-side clients to `guacd` sessions
+- [x] Docker Compose sidecar configurations using Apache Guacamole's daemon (`guacd`)
+- [x] Express proxy gateway connecting browser-side clients to `guacd` sessions
+- [x] Zero-dependency Guacamole protocol handshake implementation inside `server.ts`
+- [x] Interactive web RDP client dynamically importing jsDelivr-served Guacamole resources
 
 ### Phase 11: Proxmox VE API Integration
 - [ ] Proxmox token authentication storage

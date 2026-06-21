@@ -8,7 +8,7 @@ interface ConnectionModel {
   name: string;
   host: string;
   port: number;
-  protocol?: 'SSH' | 'VNC';
+  protocol?: 'SSH' | 'VNC' | 'RDP';
   tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
@@ -46,7 +46,7 @@ export default function ConnectionsCatalog({
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState(22);
-  const [protocol, setProtocol] = useState<'SSH' | 'VNC'>('SSH');
+  const [protocol, setProtocol] = useState<'SSH' | 'VNC' | 'RDP'>('SSH');
   const [tagsString, setTagsString] = useState(''); // Text input for creating tags (comma separated)
   const [username, setUsername] = useState('root');
   const [authType, setAuthType] = useState<'PASSWORD' | 'KEY'>('PASSWORD');
@@ -312,6 +312,8 @@ export default function ConnectionsCatalog({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {conn.protocol === 'VNC' ? (
                       <span style={{ color: 'var(--success)', display: 'flex' }}>📺</span>
+                    ) : conn.protocol === 'RDP' ? (
+                      <span style={{ color: 'var(--accent)', display: 'flex' }}>🖥️</span>
                     ) : (
                       <Terminal size={20} style={{ color: 'var(--accent)' }} />
                     )}
@@ -363,8 +365,8 @@ export default function ConnectionsCatalog({
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                  <a href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                  <a href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : conn.protocol === 'RDP' ? `/connections/rdp/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
                     Connect
                   </a>
 
@@ -434,11 +436,14 @@ export default function ConnectionsCatalog({
                   className="input-field"
                   value={protocol}
                   onChange={(e) => {
-                    const newProto = e.target.value as 'SSH' | 'VNC';
+                    const newProto = e.target.value as 'SSH' | 'VNC' | 'RDP';
                     setProtocol(newProto);
                     // Dynamically update standard ports
-                    setPort(newProto === 'VNC' ? 5900 : 22);
-                    if (newProto === 'VNC') {
+                    if (newProto === 'VNC') setPort(5900);
+                    else if (newProto === 'RDP') setPort(3389);
+                    else setPort(22);
+                    
+                    if (newProto === 'VNC' || newProto === 'RDP') {
                       setAuthType('PASSWORD');
                     }
                   }}
@@ -447,6 +452,7 @@ export default function ConnectionsCatalog({
                 >
                   <option value="SSH">SSH — Secure Terminal Access</option>
                   <option value="VNC">VNC — Browser-Based Desktop Viewer</option>
+                  <option value="RDP">RDP — Windows/Linux Remote Desktop Console</option>
                 </select>
               </div>
               <div className="form-group">

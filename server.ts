@@ -32,6 +32,12 @@ function parseCookies(cookieHeader: string): Record<string, string> {
   return list;
 }
 
+// Helper to construct Apache Guacamole protocol instruction strings (Finding #guac-handshake)
+function guacInstruction(opcode: string, ...args: string[]): string {
+  const list = [opcode, ...args];
+  return list.map((a) => `${a.length}.${a}`).join(',') + ';';
+}
+
 // In-Memory sliding-window rate-limiter bucket registry (Finding #1)
 const rateLimitBuckets = new Map<string, number[]>();
 
@@ -108,6 +114,7 @@ app.prepare().then(() => {
   // Initialize Web Socket Servers
   const wss = new WebSocketServer({ noServer: true });
   const wssVnc = new WebSocketServer({ noServer: true });
+  const wssRdp = new WebSocketServer({ noServer: true });
 
   // Persistent SSH Session Registry supporting Resumable Connections (Finding #resumable)
   // Maps "userId:connectionId" to a single persistent SSH client and running shell stream
@@ -307,7 +314,7 @@ app.prepare().then(() => {
       const privateKey = connection.privateKey ? decrypt(connection.privateKey) : null;
       const passphrase = connection.passphrase ? decrypt(connection.passphrase) : null;
 
-      // Establish new SSH tunnel
+      // Connect to remote node
       const sshClient = await connectSSH({
         host: connection.host,
         port: connection.port,
@@ -583,6 +590,198 @@ app.prepare().then(() => {
     }
   });
 
+  // ==========================================
+  // 3. WEBSOCKET RDP PROTOCOL GATEWAY (Phase 10)
+  // ==========================================
+  wssRdp.on('connection', async (ws: WebSocket, request) => {
+    const url = request.url || '';
+    const parsedUrl = parse(url, true);
+    const query = parsedUrl.query;
+    
+    const connectionId = query.connectionId as string;
+    const sessionId = Math.random().toString(36).substring(2, 9);
+    
+    let guacdClient: net.Socket | null = null;
+    let isHandshakeComplete = false;
+
+    // Handshaking watchdog timeout
+    const handshakeTimeout = setTimeout(() => {
+      if (!isHandshakeComplete) {
+        console.warn(`[WS-RDP] Handshake timed out. Terminating session ID ${sessionId}.`);
+        ws.close(1008, 'Handshake timed out');
+      }
+    }, 5000);
+
+    try {
+      const cookies = parseCookies(request.headers.cookie || '');
+      const cookieName = cookies['authjs.session-token'] ? 'authjs.session-token' : '__Secure-authjs.session-token';
+      const sessionToken = cookies[cookieName];
+
+      if (!sessionToken) {
+        throw new Error('UNAUTHORIZED: No active session.');
+      }
+
+      const decodedUser = await decode({
+        token: sessionToken,
+        secret: process.env.NEXTAUTH_SECRET!,
+        salt: cookieName,
+      });
+
+      if (!decodedUser || !decodedUser.id) {
+        throw new Error('UNAUTHORIZED: Token invalid.');
+      }
+
+      if (!connectionId) {
+        throw new Error('BAD_REQUEST: Missing connectionId.');
+      }
+
+      const connection = await db.connection.findUnique({
+        where: { id: connectionId },
+        include: { sharedWith: true },
+      });
+
+      if (!connection || connection.protocol !== 'RDP') {
+        throw new Error('NOT_FOUND: RDP profile not found.');
+      }
+
+      // Enforce BOLA checks
+      const isOwner = connection.userId === decodedUser.id;
+      const isShared = connection.sharedWith.some((share) => share.userId === decodedUser.id);
+
+      if (!isOwner && !isShared) {
+        throw new Error('FORBIDDEN: Scope violation.');
+      }
+
+      console.log(`[WS-RDP] Auth Succeeded. User: ${decodedUser.email} -> RDP: ${connection.host}:${connection.port}`);
+
+      // Log session
+      activeSessions.set(sessionId, {
+        ws,
+        username: decodedUser.email || 'unknown',
+        host: `${connection.host} (RDP)`,
+        startedAt: new Date(),
+      });
+
+      // Write Audit Log
+      const ip = (request.headers['x-forwarded-for'] as string || request.socket.remoteAddress || '').split(',')[0].trim();
+      await writeAudit(
+        decodedUser.id as string,
+        'RDP Session Initializing',
+        ip,
+        { connectionId: connection.id, name: connection.name, host: connection.host }
+      );
+
+      clearTimeout(handshakeTimeout);
+      isHandshakeComplete = true;
+
+      // Resolve guacd sidecar configurations
+      const guacdHost = process.env.GUACD_HOST || 'localhost';
+      const guacdPort = Number(process.env.GUACD_PORT) || 4822;
+
+      // Connect to Guacamole Daemon sidecar container (Finding #guac-tunnel)
+      guacdClient = net.createConnection({
+        host: guacdHost,
+        port: guacdPort,
+      });
+
+      const decryptedPassword = connection.password ? decrypt(connection.password) : '';
+
+      // Initialize state variables for Guacamole Handshake Protocol negotiation
+      let handshook = false;
+
+      guacdClient.on('connect', () => {
+        // Send initial protocol select instruction
+        if (guacdClient && !guacdClient.destroyed) {
+          guacdClient.write(guacInstruction('select', 'rdp'));
+        }
+      });
+
+      // Handle raw stream buffering and handshake parser
+      guacdClient.on('data', (data) => {
+        const payload = data.toString();
+
+        if (!handshook) {
+          // If receiving args list, compile the connect instruction block
+          if (payload.startsWith('4.args,')) {
+            // Simple parsing to split raw instructions: e.g. "4.args,8.hostname,4.port;"
+            // Extracts all supported arg names dynamically
+            const argsList: string[] = [];
+            const parts = payload.substring(7, payload.length - 1).split(',');
+            
+            parts.forEach((p) => {
+              const dotIdx = p.indexOf('.');
+              if (dotIdx !== -1) {
+                argsList.push(p.substring(dotIdx + 1));
+              }
+            });
+
+            // Map connection arguments to the matching guacd instruction parameters
+            const argValues = argsList.map((argName) => {
+              if (argName === 'hostname') return connection.host;
+              if (argName === 'port') return (connection.port || 3389).toString();
+              if (argName === 'username') return connection.username;
+              if (argName === 'password') return decryptedPassword;
+              if (argName === 'ignore-cert') return 'true'; // crucial to prevent cert blocks on self-signed RDPs
+              if (argName === 'width') return '1024';
+              if (argName === 'height') return '768';
+              if (argName === 'dpi') return '96';
+              return ''; // all other parameters blank
+            });
+
+            // Send standard connect instruction to finalize handshake
+            if (guacdClient && !guacdClient.destroyed) {
+              guacdClient.write(guacInstruction('connect', ...argValues));
+              handshook = true;
+            }
+          }
+        } else {
+          // Once handshake is completed, forward all stream outputs directly to WebSocket
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(payload);
+          }
+        }
+      });
+
+      // Forward WebSocket inputs back to the guacd TCP Client
+      ws.on('message', (message) => {
+        if (guacdClient && !guacdClient.destroyed) {
+          guacdClient.write(message.toString());
+        }
+      });
+
+      guacdClient.on('error', (err) => {
+        console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
+        ws.send(guacInstruction('error', 'Guacamole daemon error', '1'));
+        ws.close();
+      });
+
+      guacdClient.on('close', () => {
+        console.log(`[WS-RDP] Guacamole sidecar closed target tunnel. Session: ${sessionId}`);
+        ws.close();
+      });
+
+      ws.on('close', async () => {
+        console.log(`[WS-RDP] Web Client disconnected from RDP. Session: ${sessionId}`);
+        if (guacdClient) guacdClient.destroy();
+        activeSessions.delete(sessionId);
+
+        await writeAudit(
+          decodedUser.id as string,
+          'RDP Session Closed',
+          ip,
+          { connectionId: connection.id, name: connection.name, host: connection.host }
+        );
+      });
+
+    } catch (err: any) {
+      clearTimeout(handshakeTimeout);
+      console.error('[WS-RDP] Handshake crashed:', err.message);
+      ws.close(1008, err.message);
+      if (guacdClient) guacdClient.destroy();
+      activeSessions.delete(sessionId);
+    }
+  });
+
   // Intercept HTTP server 'upgrade' requests to authorize and route to correct WebSocket Server
   server.on('upgrade', (request, socket, head) => {
     const { pathname } = parse(request.url || '', true);
@@ -594,6 +793,10 @@ app.prepare().then(() => {
     } else if (pathname === '/api/ws/vnc') {
       wssVnc.handleUpgrade(request, socket, head, (ws) => {
         wssVnc.emit('connection', ws, request);
+      });
+    } else if (pathname === '/api/ws/rdp') {
+      wssRdp.handleUpgrade(request, socket, head, (ws) => {
+        wssRdp.emit('connection', ws, request);
       });
     }
   });
