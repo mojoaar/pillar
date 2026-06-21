@@ -54,6 +54,10 @@ export async function GET(request: NextRequest) {
       client.getClusterResources()
     ]);
 
+    console.log('[Proxmox API] Raw nodes sample:', JSON.stringify(nodes?.slice(0, 1)));
+    console.log('[Proxmox API] Raw resources node sample:', JSON.stringify(resources?.filter((r: any) => r.type === 'node')?.slice(0, 1)));
+    console.log('[Proxmox API] Raw resources qemu/lxc count:', resources?.filter((r: any) => r.type === 'qemu' || r.type === 'lxc')?.length);
+
     return NextResponse.json({
       enabled: true,
       connected: true,

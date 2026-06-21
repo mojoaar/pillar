@@ -49,6 +49,9 @@ export default function ProxmoxDashboard() {
       setConnected(data.connected || false);
       
       if (data.enabled && data.connected && data.data) {
+        console.log('[Proxmox Debug] Raw nodes:', JSON.stringify(data.data.nodes));
+        console.log('[Proxmox Debug] Raw resources:', JSON.stringify(data.data.resources));
+
         // Merge node metrics from cluster resources into basic node names
         const nodeResources = (data.data.resources || []).filter((r: any) => r.type === 'node');
         const nodesWithMetrics = (data.data.nodes || []).map((node: any) => {
