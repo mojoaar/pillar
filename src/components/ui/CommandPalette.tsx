@@ -20,6 +20,8 @@ interface ConnectionAction {
   host: string;
   username: string;
   port: number;
+  tags?: string[];
+  protocol?: string;
 }
 
 interface CommandItem {

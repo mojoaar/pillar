@@ -37,13 +37,31 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, port, protocol, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
     if (host) updateData.host = host.trim();
     if (port) updateData.port = Number(port) || 22;
     if (protocol) updateData.protocol = protocol === 'VNC' ? 'VNC' : 'SSH';
+    
+    // Sanitize incoming tags updates (Finding #tags)
+    if (tags !== undefined) {
+      if (tags) {
+        const parsedTags = Array.isArray(tags) 
+          ? tags 
+          : typeof tags === 'string' 
+            ? tags.split(',') 
+            : [];
+        const cleanList = parsedTags
+          .map((t: string) => t.trim().toLowerCase())
+          .filter((t: string) => t.length > 0);
+        updateData.tags = cleanList.length > 0 ? Array.from(new Set(cleanList)).join(',') : null;
+      } else {
+        updateData.tags = null;
+      }
+    }
+
     if (username) updateData.username = username.trim();
     if (authType) updateData.authType = authType === 'KEY' ? 'KEY' : 'PASSWORD';
 

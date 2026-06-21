@@ -120,6 +120,15 @@ app.prepare().then(() => {
     host: s.host,
     startedAt: s.startedAt,
   }));
+  (globalThis as any).terminateSession = (sessionId: string) => {
+    const session = activeSessions.get(sessionId);
+    if (session) {
+      session.ws.close(1000, 'Force closed by administrator');
+      activeSessions.delete(sessionId);
+      return true;
+    }
+    return false;
+  };
 
   // ==========================================
   // 1. WEBSOCKET SSH HANDLER (Phase 4)

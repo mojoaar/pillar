@@ -9,6 +9,7 @@ interface ConnectionModel {
   host: string;
   port: number;
   protocol?: 'SSH' | 'VNC';
+  tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
   isShared: boolean;
@@ -46,11 +47,15 @@ export default function ConnectionsCatalog({
   const [host, setHost] = useState('');
   const [port, setPort] = useState(22);
   const [protocol, setProtocol] = useState<'SSH' | 'VNC'>('SSH');
+  const [tagsString, setTagsString] = useState(''); // Text input for creating tags (comma separated)
   const [username, setUsername] = useState('root');
   const [authType, setAuthType] = useState<'PASSWORD' | 'KEY'>('PASSWORD');
   const [password, setPassword] = useState('');
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
+
+  // Filtering Connections (Finding #tags-filter)
+  const [selectedTag, setSelectedTag] = useState('');
 
   // Share Modal Fields
   const [shareUserId, setShareUserId] = useState('');
@@ -63,6 +68,7 @@ export default function ConnectionsCatalog({
     setHost('');
     setPort(22);
     setProtocol('SSH');
+    setTagsString(''); // Clear tags text
     setUsername('root');
     setAuthType('PASSWORD');
     setPassword('');
@@ -83,6 +89,7 @@ export default function ConnectionsCatalog({
     setHost(conn.host);
     setPort(conn.port);
     setProtocol(conn.protocol || 'SSH');
+    setTagsString(conn.tags ? conn.tags.join(', ') : ''); // Populate tags string
     setUsername(conn.username);
     setAuthType(conn.authType);
     setPassword(''); // never leak password back (Gotcha #113)
@@ -116,6 +123,7 @@ export default function ConnectionsCatalog({
         host,
         port: Number(port),
         protocol, // include protocol parameter (SSH / VNC)
+        tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
         password: authType === 'PASSWORD' ? password : null,
@@ -203,6 +211,16 @@ export default function ConnectionsCatalog({
     }
   };
 
+  // Dynamic Tag Aggregation (Finding #tags)
+  const allUniqueTags = Array.from(
+    new Set(connections.flatMap((c) => c.tags || []))
+  ).sort();
+
+  // Filter connections by active selected tag pill (Finding #tags-filter)
+  const filteredConnections = selectedTag
+    ? connections.filter((c) => c.tags && c.tags.includes(selectedTag))
+    : connections;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header Catalog controls */}
@@ -212,7 +230,7 @@ export default function ConnectionsCatalog({
             Connections Catalog
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Securely save and organize SSH endpoints for quick gateway launches.
+            Securely save and organize endpoints for quick gateway launches.
           </p>
         </div>
         <button className="btn btn-primary" onClick={handleOpenCreate}>
@@ -221,21 +239,72 @@ export default function ConnectionsCatalog({
         </button>
       </div>
 
+      {/* Quick-Filter Toolbar Row (Finding #tags-filter-bar) */}
+      {allUniqueTags.length > 0 && (
+        <div style={{
+          display: 'flex',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '0.75rem',
+          marginTop: '-0.5rem'
+        }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginRight: '0.5rem' }}>
+            Filter:
+          </span>
+          <button
+            onClick={() => setSelectedTag('')}
+            className="btn btn-sm"
+            style={{
+              backgroundColor: selectedTag === '' ? 'var(--accent)' : 'var(--bg-tertiary)',
+              color: selectedTag === '' ? 'var(--bg-primary)' : 'var(--text-primary)',
+              borderRadius: '9999px',
+              border: '1px solid var(--border)',
+              padding: '0.2rem 0.75rem',
+              cursor: 'pointer'
+            }}
+          >
+            All
+          </button>
+          {allUniqueTags.map((tag) => {
+            const isSelected = selectedTag === tag;
+            return (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                className="btn btn-sm"
+                style={{
+                  backgroundColor: isSelected ? 'var(--accent)' : 'var(--bg-tertiary)',
+                  color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--border)',
+                  padding: '0.2rem 0.75rem',
+                  cursor: 'pointer'
+                }}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Connection Grid list */}
       <div className="grid-3" style={{ marginTop: '0.5rem' }}>
-        {connections.length === 0 ? (
+        {filteredConnections.length === 0 ? (
           <div className="card" style={{ gridColumn: 'span 3', textAlign: 'center', padding: '4rem 2rem' }}>
             <Terminal size={48} style={{ color: 'var(--border)', marginBottom: '1rem' }} />
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No SSH Connections Found</h3>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>No Connection Profiles Found</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '380px', margin: '0 auto 1.5rem' }}>
-              Add endpoints like Proxmox nodes, Raspberry Pis, or NAS clusters to launch browser-based SSH terminals.
+              No connection profiles match the selected tag filter.
             </p>
             <button className="btn btn-primary" onClick={handleOpenCreate}>
               Create your first profile →
             </button>
           </div>
         ) : (
-          connections.map((conn) => {
+          filteredConnections.map((conn) => {
             const isOwner = conn.userId === currentUserId;
             return (
               <div key={conn.id} className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '1rem' }}>
@@ -258,7 +327,7 @@ export default function ConnectionsCatalog({
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <div className="flex-align-center">
                     <User size={14} style={{ color: 'var(--text-muted)' }} />
                     <span>Username: <strong>{conn.username}</strong></span>
@@ -267,6 +336,31 @@ export default function ConnectionsCatalog({
                     <Globe size={14} style={{ color: 'var(--text-muted)' }} />
                     <span style={{ fontFamily: 'var(--terminal-font)' }}>{conn.host}:{conn.port}</span>
                   </div>
+                  {conn.tags && conn.tags.length > 0 && (
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                      {conn.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedTag(tag);
+                          }}
+                          style={{
+                            fontSize: '0.65rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            backgroundColor: 'var(--bg-tertiary)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
@@ -366,6 +460,19 @@ export default function ConnectionsCatalog({
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
                   required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="conn-tags">Profile Tags <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional, comma-separated)</span></label>
+                <input
+                  type="text"
+                  id="conn-tags"
+                  className="input-field"
+                  placeholder="e.g. prod, web, cluster"
+                  value={tagsString}
+                  onChange={(e) => setTagsString(e.target.value)}
+                  disabled={loading}
                 />
               </div>
 
@@ -543,9 +650,14 @@ export default function ConnectionsCatalog({
             )}
 
             {users.length === 0 ? (
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem', textAlign: 'center' }}>
-                No other local users registered in system.
-              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  No other local users registered in system.
+                </p>
+                <button type="button" className="btn btn-secondary" style={{ width: '120px' }} onClick={() => setShowShareModal(false)}>
+                  Close
+                </button>
+              </div>
             ) : (
               <form onSubmit={handleShareSubmit}>
                 <div className="form-group">

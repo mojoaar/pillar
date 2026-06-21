@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
       host: c.host,
       port: c.port,
       protocol: c.protocol, // include protocol (SSH / VNC)
+      tags: c.tags ? c.tags.split(',') : [], // include connection tags as string array (Finding #tags)
       username: c.username,
       authType: c.authType,
       isShared: c.isShared,
@@ -61,10 +62,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, port, protocol, username, authType, password, privateKey, passphrase } = body;
+    const { name, host, port, protocol, tags, username, authType, password, privateKey, passphrase } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Sanitize incoming tags: convert to clean comma-separated list of lower-case unique values (Finding #tags)
+    let sanitizedTags: string | null = null;
+    if (tags) {
+      const parsedTags = Array.isArray(tags) 
+        ? tags 
+        : typeof tags === 'string' 
+          ? tags.split(',') 
+          : [];
+      const cleanList = parsedTags
+        .map((t: string) => t.trim().toLowerCase())
+        .filter((t: string) => t.length > 0);
+      sanitizedTags = cleanList.length > 0 ? Array.from(new Set(cleanList)).join(',') : null;
     }
 
     // 1. Encrypt secrets securely before database insertion (Security mandate #1)
@@ -80,6 +95,7 @@ export async function POST(request: NextRequest) {
         host: host.trim(),
         port: Number(port) || (protocol === 'VNC' ? 5900 : 22),
         protocol: protocol === 'VNC' ? 'VNC' : 'SSH',
+        tags: sanitizedTags,
         username: username.trim(),
         authType: authType === 'KEY' ? 'KEY' : 'PASSWORD',
         password: encryptedPassword,
