@@ -957,6 +957,8 @@ app.prepare().then(() => {
       const WebSocketLib = await import('ws');
       const pveWssUrl = `wss://${pveHost}:${pvePort}/api2/json/nodes/${encodeURIComponent(node)}/${encodeURIComponent(type)}/${encodeURIComponent(vmid)}/vncwebsocket?port=${proxyPort}&vncticket=${encodeURIComponent(ticket)}`;
 
+      console.log(`[WS-PVE-VNC] Connecting to PVE WebSocket: ${pveWssUrl}`);
+
       pveWs = new WebSocketLib.WebSocket(pveWssUrl, {
         headers: { 'Cookie': `PVEAuthCookie=${ticket}` },
         rejectUnauthorized: verifySsl,
@@ -982,11 +984,11 @@ app.prepare().then(() => {
 
       pveWs.on('error', (err: any) => {
         console.error('[WS-PVE-VNC] PVE WebSocket error:', err.message);
-        ws.close();
+        ws.close(1011, `PVE VNC error: ${err.message}`);
       });
 
-      pveWs.on('close', () => {
-        console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel closed. Session: ${sessionId}`);
+      pveWs.on('close', (code: number) => {
+        console.log(`[WS-PVE-VNC] Hypervisor VNC tunnel closed (code ${code}). Session: ${sessionId}`);
         ws.close();
       });
 
