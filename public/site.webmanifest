@@ -1,0 +1,26 @@
+{
+  "name": "Pillar",
+  "short_name": "Pillar",
+  "description": "Self-hosted secure remote-access gateway for homelabs",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#282a36",
+  "theme_color": "#bd93f9",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
