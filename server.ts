@@ -171,6 +171,7 @@ app.prepare().then(() => {
     cols: number;
     rows: number;
     listeners: Map<WebSocket, (data: any) => void>;
+    sessionId?: string;
   }>();
 
   // activeSessions Map is now managed through sessionRegistry module (lib/sessions.ts)
@@ -274,10 +275,10 @@ app.prepare().then(() => {
           session.activeSockets.clear();
 
           // Clean up the old session ID from sessionRegistry before mapping the new resumed one
-          if ((session as any).sessionId) {
-            sessionRegistry.delete((session as any).sessionId);
+          if (session.sessionId) {
+            sessionRegistry.delete(session.sessionId);
           }
-          (session as any).sessionId = sessionId;
+          session.sessionId = sessionId;
 
           // Add new socket to active list
           session.activeSockets.add(ws);
@@ -452,6 +453,7 @@ app.prepare().then(() => {
           cols: initialCols,
           rows: initialRows,
           listeners: new Map<WebSocket, (data: any) => void>(),
+          sessionId,
         };
 
         persistentSshSessions.set(sessionKey, sessionEntry);
