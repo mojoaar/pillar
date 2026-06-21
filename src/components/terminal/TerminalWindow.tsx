@@ -134,8 +134,6 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       }
     };
 
-    // WebSocketonerror events are empty objects {} by browser security specs (Finding #onerror)
-    // Trapping is handled cleanly inside onclose reasons where detail close strings are passed!
     socket.onerror = (err) => {
       console.error('[Terminal-WS] Connection socket errored.');
     };
@@ -146,6 +144,45 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
       const code = event.code;
       term.write(`\r\n\x1b[31m[Pillar Gateway Error] Sockets closed (Code ${code}): ${reason}\x1b[0m\r\n`);
     };
+
+    // ==========================================
+    // PREMIUM COPY/PASTE INTERACTIVITY ENGINE (Finding #copypaste)
+    // ==========================================
+    
+    // A. Copy on Selection (Highlighting text automatically copies it to local system clipboard)
+    term.onSelectionChange(() => {
+      if (term.hasSelection()) {
+        const text = term.getSelection();
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+    });
+
+    // B. Intercept Keyboard Paste Shortcuts (Cmd+V on macOS, Ctrl+V on Windows/Linux)
+    term.attachCustomKeyEventHandler((e) => {
+      const isPaste = (e.metaKey || e.ctrlKey) && e.code === 'KeyV';
+      if (isPaste && e.type === 'keydown') {
+        navigator.clipboard.readText().then((text) => {
+          if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(text);
+          }
+        }).catch((err) => {
+          console.warn('[Terminal-Clipboard] Failed to read from system clipboard:', err);
+        });
+        return false; // Prevent default xterm handling of V keystroke
+      }
+      return true;
+    });
+
+    // C. Capture standard browser Context Paste operations on the container element
+    const handlePasteEvent = (e: ClipboardEvent) => {
+      e.preventDefault();
+      const text = e.clipboardData?.getData('text') || '';
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(text);
+      }
+    };
+
+    containerRef.current.addEventListener('paste', handlePasteEvent);
 
     // 6. Responsive Resize Observer to notify SSH shell of layout updates
     const resizeObserver = new ResizeObserver(() => {
@@ -172,6 +209,9 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
     // 7. Cleanup pipelines and sockets on unmount
     return () => {
       resizeObserver.disconnect();
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('paste', handlePasteEvent);
+      }
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.close();
       }
