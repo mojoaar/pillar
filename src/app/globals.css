@@ -78,6 +78,7 @@ kbd {
 :root {
   --font-mono-system: ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --terminal-font: "JetBrains Mono", monospace;
+  --font-size-terminal: 14px;
   --border-radius: 6px;
   --transition-speed: 0.2s;
 }

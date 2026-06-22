@@ -48,6 +48,7 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
   const [timezone, setTimezone] = useState(getDefaultTimezone());
   const [timezones, setTimezones] = useState<string[]>(['UTC']);
   const [scrollback, setScrollback] = useState(1000); // Terminal scrollback history lines (Finding #scrollback)
+  const [terminalFontSize, setTerminalFontSize] = useState(14);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,11 +60,16 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
     const savedDate = localStorage.getItem('pillar-date') as DateFormatPreference;
     const savedTz = localStorage.getItem('pillar-timezone');
     const savedScrollback = localStorage.getItem('pillar-scrollback');
+    const savedFontSize = localStorage.getItem('pillar-terminal-font-size');
 
     if (savedClock) setHour12(savedClock === '12h');
     if (savedDate) setDateFormat(savedDate);
     if (savedTz) setTimezone(savedTz);
     if (savedScrollback) setScrollback(Number(savedScrollback));
+    if (savedFontSize) {
+      setTerminalFontSize(Number(savedFontSize));
+      document.documentElement.style.setProperty('--font-size-terminal', `${savedFontSize}px`);
+    }
 
     // Load all supported standard IANA timezones dynamically
     try {
@@ -257,6 +263,8 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
     localStorage.setItem('pillar-date', dateFormat);
     localStorage.setItem('pillar-timezone', timezone);
     localStorage.setItem('pillar-scrollback', scrollback.toString());
+    localStorage.setItem('pillar-terminal-font-size', terminalFontSize.toString());
+    document.documentElement.style.setProperty('--font-size-terminal', `${terminalFontSize}px`);
 
     setSuccess('Preferences saved successfully!');
   };
@@ -780,6 +788,28 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
               />
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Number of lines kept in terminal viewport memory (Min 100, Max 50,000).
+              </span>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="pref-terminal-font-size">Terminal Font Size</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <input
+                  type="range"
+                  id="pref-terminal-font-size"
+                  min={12}
+                  max={24}
+                  step={1}
+                  value={terminalFontSize}
+                  onChange={(e) => setTerminalFontSize(Number(e.target.value))}
+                  style={{ flex: 1, cursor: 'pointer', accentColor: 'var(--accent)' }}
+                />
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, minWidth: '2.5rem', textAlign: 'center', fontFamily: 'var(--terminal-font)' }}>
+                  {terminalFontSize}px
+                </span>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Default terminal monospace font size for SSH sessions (12–24px). Takes effect on new connections.
               </span>
             </div>
 
