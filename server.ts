@@ -938,6 +938,11 @@ app.prepare().then(() => {
             guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
             guacdClient.write(guacInstruction('connect', ...argValues));
             handshook = true;
+            // Flush remaining guacdBuffer to browser (e.g., ready instruction that arrived in same TCP chunk as args)
+            if (ws.readyState === WebSocket.OPEN && guacdBuffer.length > 0) {
+              ws.send(guacdBuffer);
+              guacdBuffer = '';
+            }
           }
         } else {
           // After handshake — pure raw pipe, no parsing needed
