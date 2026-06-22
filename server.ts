@@ -884,6 +884,7 @@ app.prepare().then(() => {
 
       // Capture browser messages before the TCP connection is established
       let handshook = false;
+      let argsList: string[] = [];
       let guacdBuffer = '';
       const pendingBrowserMessages: string[] = [];
       ws.on('message', (message) => {
@@ -891,8 +892,33 @@ app.prepare().then(() => {
         if (raw.length === 0) return;
 
         if (guacdClient && !guacdClient.destroyed) {
-          if (raw.startsWith('7.connect')) return;
-          guacdClient.write(raw);
+          if (handshook) {
+            // Pipe active — every instruction goes verbatim to guacd
+            guacdClient.write(raw);
+          } else if (raw.startsWith('7.connect,') && argsList.length > 0) {
+            // Intercept browser's connect — send credentialed connect LAST
+            const argValues = argsList.map((argName: string) => {
+              if (argName.startsWith('VERSION_')) return '';
+              if (argName === 'hostname') return connection.host;
+              if (argName === 'port') return (connection.port || 3389).toString();
+              if (argName === 'username') return rdpUsername;
+              if (argName === 'password') return decryptedPassword;
+              if (argName === 'domain') return rdpDomain;
+              if (argName === 'security') return rdpSecurity;
+              if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
+              if (argName === 'width') return rdpWidth || '1024';
+              if (argName === 'height') return rdpHeight || '768';
+              if (argName === 'dpi') return '96';
+              if (argName === 'color-depth') return '24';
+              if (argName === 'client-name') return 'Pillar';
+              return '';
+            });
+            guacdClient.write(guacInstruction('connect', ...argValues));
+            handshook = true;
+          } else {
+            // Forward select, size, audio, video, image verbatim (INCLUDING to guacd)
+            guacdClient.write(raw);
+          }
         } else {
           pendingBrowserMessages.push(raw);
         }
@@ -931,26 +957,8 @@ app.prepare().then(() => {
           guacdBuffer = parsed.remaining;
 
           const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
-          if (argsInst) {
-            const argValues = argsInst.args.map((argName: string) => {
-              if (argName.startsWith('VERSION_')) return '';
-              if (argName === 'hostname') return connection.host;
-              if (argName === 'port') return (connection.port || 3389).toString();
-              if (argName === 'username') return rdpUsername;
-              if (argName === 'password') return decryptedPassword;
-              if (argName === 'domain') return rdpDomain;
-              if (argName === 'security') return rdpSecurity;
-              if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
-              if (argName === 'width') return rdpWidth || '1024';
-              if (argName === 'height') return rdpHeight || '768';
-              if (argName === 'dpi') return '96';
-              if (argName === 'color-depth') return '24';
-              if (argName === 'client-name') return 'Pillar';
-              return '';
-            });
-
-            guacdClient.write(guacInstruction('connect', ...argValues));
-            handshook = true;
+          if (argsInst && argsList.length === 0) {
+            argsList = argsInst.args;
           }
         } else {
           guacdBuffer += payload;
@@ -966,17 +974,6 @@ app.prepare().then(() => {
 
       // Connect to Guacamole Daemon sidecar container LAST (all listeners registered)
       guacdClient.connect({ host: guacdHost, port: guacdPort });
-
-      guacdClient.on('error', (err) => {
-        console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
-        ws.send(guacInstruction('error', 'Guacamole daemon error', '1'));
-        ws.close();
-      });
-
-      guacdClient.on('close', () => {
-        console.log(`[WS-RDP] Guacamole sidecar closed target tunnel. Session: ${sessionId}`);
-        ws.close();
-      });
 
       ws.on('close', async () => {
         console.log(`[WS-RDP] Web Client disconnected from RDP. Session: ${sessionId}`);
