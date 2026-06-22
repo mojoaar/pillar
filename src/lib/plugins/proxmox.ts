@@ -209,7 +209,7 @@ export class ProxmoxClient {
         this.verifySsl
       );
       const result = res.data?.result;
-      return result?.name || result?.['pretty-name'] || null;
+      return result?.['pretty-name'] || result?.name || null;
     } catch {
       return null;
     }
