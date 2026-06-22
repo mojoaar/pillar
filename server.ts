@@ -787,6 +787,12 @@ app.prepare().then(() => {
     let guacdClient: net.Socket | null = null;
     let isHandshakeComplete = false;
 
+    // Single message handler — queues all messages; flushed after guacdClient ready
+    const rawMessageQueue: string[] = [];
+    ws.on('message', (message) => {
+      rawMessageQueue.push(message.toString());
+    });
+
     // Handshaking watchdog timeout
     const handshakeTimeout = setTimeout(() => {
       if (!isHandshakeComplete) {
@@ -894,47 +900,29 @@ app.prepare().then(() => {
       let browserBuffer = '';
       let connectIntercepted = false;
       let guacdBuffer = '';
+      const rdpHost = connection.host;
+      const rdpPort = (connection.port || 3389).toString();
 
-      // Parse guacd stream to capture argsList, and forward all outputs to WebSocket
-      guacdClient.on('data', (data) => {
-        const payload = data.toString();
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(payload);
-        }
-
-        if (argsList.length === 0) {
-          guacdBuffer += payload;
-          const parsed = parseGuacInstructions(guacdBuffer);
-          guacdBuffer = parsed.remaining;
-
-          const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
-          if (argsInst) {
-            argsList = argsInst.args;
-          }
-        }
-      });
-
-      // Forward WebSocket inputs back to the guacd TCP Client
-      ws.on('message', (message) => {
+      // Processing function for browser→guacd messages
+      function processBrowserMessage(payload: string) {
         if (!guacdClient || guacdClient.destroyed) return;
 
         if (connectIntercepted) {
-          // Handshake is complete, forward all subsequent messages verbatim (maximum performance!)
-          guacdClient.write(message.toString());
+          if (payload.length > 0) guacdClient.write(payload);
           return;
         }
 
-        browserBuffer += message.toString();
+        browserBuffer += payload;
         const parsed = parseGuacInstructions(browserBuffer);
         browserBuffer = parsed.remaining;
 
         for (const inst of parsed.instructions) {
+          console.log('[WS-RDP] browser->guacd opcode:', inst.opcode, 'args:', inst.args.length);
           if (inst.opcode === 'connect') {
-            // INTERCEPT AND REPLACE CONNECT
             const argValues = argsList.map((argName) => {
               if (argName.startsWith('VERSION_')) return '';
-              if (argName === 'hostname') return connection.host;
-              if (argName === 'port') return (connection.port || 3389).toString();
+              if (argName === 'hostname') return rdpHost;
+              if (argName === 'port') return rdpPort;
               if (argName === 'username') return rdpUsername;
               if (argName === 'password') return decryptedPassword;
               if (argName === 'domain') return rdpDomain;
@@ -945,18 +933,46 @@ app.prepare().then(() => {
               if (argName === 'dpi') return '96';
               if (argName === 'color-depth') return '24';
               if (argName === 'client-name') return 'Pillar';
-              return ''; // all other parameters blank
+              return '';
             });
 
             const replacedConnect = guacInstruction('connect', ...argValues);
             guacdClient.write(replacedConnect);
             connectIntercepted = true;
           } else {
-            // Forward select, size, audio, video, image, etc. verbatim
             guacdClient.write(guacInstruction(inst.opcode, ...inst.args));
           }
         }
-      });
+      }
+
+    // Parse guacd stream to capture argsList, and forward all outputs to WebSocket
+    guacdClient.on('data', (data) => {
+      const payload = data.toString();
+      console.log('[WS-RDP] guacd->browser:', payload.substring(0, 120));
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(payload);
+      }
+
+      if (argsList.length === 0) {
+        guacdBuffer += payload;
+        const parsed = parseGuacInstructions(guacdBuffer);
+        guacdBuffer = parsed.remaining;
+
+        const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
+        if (argsInst) {
+          argsList = argsInst.args;
+          console.log('[WS-RDP] Captured argsList, count:', argsList.length);
+        }
+      }
+    });
+
+    // Flush all browser messages that were queued during async setup
+    console.log('[WS-RDP] Flushing queued messages:', rawMessageQueue.length);
+    for (const msg of rawMessageQueue) {
+      processBrowserMessage(msg);
+    }
+    rawMessageQueue.length = 0;
+    rawMessageQueue.length = 0;
 
       guacdClient.on('error', (err) => {
         console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
