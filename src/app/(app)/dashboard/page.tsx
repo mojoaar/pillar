@@ -41,7 +41,7 @@ export default async function DashboardPage() {
           Welcome back, {session.user.name}!
         </h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          Monitor your saved connections and launch secure SSH, VNC, or RDP bridges.
+          Monitor your saved connections and launch secure SSH or VNC bridges.
         </p>
       </div>
 
@@ -151,8 +151,6 @@ export default async function DashboardPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     {conn.protocol === 'VNC' ? (
                       <span style={{ color: 'var(--success)', display: 'flex', fontSize: '1.15rem' }}>📺</span>
-                    ) : conn.protocol === 'RDP' ? (
-                      <span style={{ color: 'var(--accent)', display: 'flex', fontSize: '1.15rem' }}>🖥️</span>
                     ) : (
                       <Terminal size={18} style={{ color: 'var(--accent)' }} />
                     )}
@@ -165,7 +163,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   
-                  <Link href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : conn.protocol === 'RDP' ? `/connections/rdp/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm">
+                  <Link href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}`  : `/connections/${conn.id}`} className="btn btn-primary btn-sm">
                     <span>Connect</span>
                     <ArrowRight size={14} />
                   </Link>

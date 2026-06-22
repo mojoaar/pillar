@@ -1,10 +1,10 @@
 # Deploying Pillar on Proxmox VE with Nginx Proxy Manager
 
-This step-by-step guide walks you through deploying Pillar — the self-hosted, secure web-based remote-access gateway for homelabs — behind Nginx Proxy Manager on a Proxmox VE host. By the end, you'll have SSH, VNC, and RDP remote bridges running inside a Debian 12 LXC container, served over HTTPS with automatic SSL certificate renewal.
+This step-by-step guide walks you through deploying Pillar — the self-hosted, secure web-based remote-access gateway for homelabs — behind Nginx Proxy Manager on a Proxmox VE host. By the end, you'll have SSH and VNC remote bridges running inside a Debian 12 LXC container, served over HTTPS with automatic SSL certificate renewal.
 
 Two deployment options are provided:
 - **Option A: Nginx Proxy Manager + Native Node.js** — Bare-metal Node.js, no Docker overhead, direct process control via systemd.
-- **Option B: Docker Compose** — All services containerized, including the optional guacd sidecar for RDP protocol translation.
+- **Option B: Docker Compose** — All services containerized.
 
 ---
 
@@ -23,7 +23,7 @@ Two deployment options are provided:
   │  ┌────────────────────────────────────────────────┐  │
   │  │  Node.js 22 LTS (Express + ws)    :3000        │  │
   │  │  - Next.js 16 App Router + API                  │  │
-  │  │  - WebSocket SSH / VNC / RDP tunnel bridge     │  │
+  │  │  - WebSocket SSH / VNC tunnel bridge     │  │
   │  │  - NextAuth v5 (JWT + TOTP MFA)                │  │
   │  └──────────────────┬─────────────────────────────┘  │
   │                     │                                │
@@ -31,12 +31,6 @@ Two deployment options are provided:
   │  │  SQLite (Prisma ORM)  :file:/app/data/pillar.db│  │
   │  │  - Users, Connections, AuditLogs, Plugins      │  │
   │  │  - Encrypted at rest (AES-256-GCM)             │  │
-  │  └────────────────────────────────────────────────┘  │
-  │                                                      │
-  │  ┌────────────────────────────────────────────────┐  │
-  │  │  guacd (Docker sidecar, optional)  :4822       │  │
-  │  │  - Apache Guacamole daemon                     │  │
-  │  │  - RDP protocol translation                    │  │
   │  └────────────────────────────────────────────────┘  │
   │                                                      │
   └──────────────────────────────────────────────────────┘
@@ -215,7 +209,7 @@ chmod 600 /opt/pillar/.env
 chown pillar:pillar /opt/pillar/.env
 ```
 
-> Replace `pillar.yourdomain.com` with your actual domain. If you plan to use RDP, also add `GUACD_HOST=localhost` and `GUACD_PORT=4822` (requires the guacd Docker sidecar — see **Optional: Enable RDP Support** at the end of this guide).
+> Replace `pillar.yourdomain.com` with your actual domain.
 
 ### Create data directory
 
@@ -328,23 +322,13 @@ Now expose Pillar securely through your existing Nginx Proxy Manager instance.
    - **Forward Port**: `3000`
    - **Cache Assets**: Off
    - **Block Common Exploits**: On
-   - **Websocket Support**: **On** (this is critical — Pillar uses WebSockets for SSH, VNC, and RDP tunnels)
+   - **Websocket Support**: **On** (this is critical — Pillar uses WebSockets for SSH and VNC tunnels)
 4. **SSL** tab:
    - **SSL Certificate**: Request a new certificate via Let's Encrypt
    - **Force SSL**: On
    - **HTTP/2 Support**: On
    - **HSTS Enabled**: On (recommended)
 5. Click **Save**.
-
-### B. (Optional) Add guacd Proxy Host for RDP
-
-If you're running the guacd sidecar for RDP connections, add a second proxy host:
-1. **Domain Names**: `rdp.pillar.yourdomain.com`
-2. **Scheme**: `http`
-3. **Forward Hostname / IP**: Same Pillar LXC IP
-4. **Forward Port**: `4822`
-5. **Websocket Support**: On
-6. **SSL**: Same as above
 
 ### C. DNS Record
 
@@ -377,47 +361,6 @@ Ensure your DNS provider (or local DNS server like Pi-hole) has an A record poin
 
 ---
 
-## Optional: Enable RDP Support via guacd
-
-Pillar includes a built-in RDP gateway powered by Apache Guacamole. To enable it, deploy the `guacd` sidecar container:
-
-### Install Docker (skip if already done)
-
-```bash
-apt install -y docker.io docker-compose-v2
-systemctl enable --now docker
-```
-
-### Run guacd
-
-```bash
-docker run -d \
-  --name pillar-guacd \
-  --restart unless-stopped \
-  guacamole/guacd:1.5.4
-```
-
-### Update Environment
-
-Add these lines to `/opt/pillar/.env`:
-
-```env
-GUACD_HOST=localhost
-GUACD_PORT=4822
-```
-
-### 💡 Local & Workgroup RDP Account Configurations
-If connecting to a standalone Windows or Linux machine (not bound to an Active Directory Windows Domain):
-1. **Plain Username**: Enter your local username strictly without any backslashes or domain prefixes (e.g. `mojoaar`, not `kalee\mojoaar`).
-2. **Domain field**: Keep the **Domain** field empty. If your username contains `\`, Pillar will automatically split it into domain and username under the hood.
-3. **Security Mode**: Switch **RDP Security Mode** from `Negotiate` (NLA-negotiate) to **`TLS`** or **`RDP`**. Standalone Windows hosts on standard Workgroups often reject NLA authentication requests from un-joined hosts.
-4. **Ignore Certificates**: Check the **Ignore SSL / TLS certificate errors** box, as local machines almost always use self-signed certificates.
-
-Then restart Pillar:
-
-```bash
-systemctl restart pillar
-```
 
 ---
 

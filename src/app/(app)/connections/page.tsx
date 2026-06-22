@@ -48,10 +48,8 @@ export default async function ConnectionsCatalogPage() {
     host: c.host,
     domain: c.domain,
     port: c.port,
-    protocol: c.protocol as 'SSH' | 'VNC' | 'RDP',
+    protocol: c.protocol as 'SSH' | 'VNC',
     ignoreCert: c.ignoreCert,
-    screenSize: (c as any).screenSize,
-    rdpSecurity: (c as any).rdpSecurity,
     tags: c.tags ? c.tags.split(',') : [], // Split into array of strings (Finding #tags)
     username: c.username,
     authType: c.authType as 'PASSWORD' | 'KEY',

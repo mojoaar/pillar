@@ -46,8 +46,6 @@ model Connection {
   passphrase   String?            // encrypted AES-256-GCM
   isShared     Boolean            @default(false)
   ignoreCert   Boolean            @default(false)
-  screenSize   String             @default("1024x768")
-  rdpSecurity  String             @default("any")
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 

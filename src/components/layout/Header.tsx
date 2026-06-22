@@ -228,7 +228,7 @@ export default function Header({ user }: HeaderProps) {
                       <td style={{ padding: '0.75rem 0.5rem', fontFamily: 'var(--terminal-font)', fontSize: '0.75rem' }}>
                         {sess.connectionId ? (
                           <a 
-                            href={sess.protocol === 'VNC' ? `/connections/vnc/${sess.connectionId}` : sess.protocol === 'RDP' ? `/connections/rdp/${sess.connectionId}` : `/connections/${sess.connectionId}`}
+                            href={sess.protocol === 'VNC' ? `/connections/vnc/${sess.connectionId}`  : `/connections/${sess.connectionId}`}
                             title="Click to resume/connect to this running session"
                             style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 600 }}
                             onClick={() => setShowSessionsModal(false)}

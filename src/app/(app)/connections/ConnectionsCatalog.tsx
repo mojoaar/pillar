@@ -9,10 +9,8 @@ interface ConnectionModel {
   host: string;
   domain?: string | null;
   port: number;
-  protocol?: 'SSH' | 'VNC' | 'RDP';
+  protocol?: 'SSH' | 'VNC';
   ignoreCert?: boolean;
-  screenSize?: string;
-  rdpSecurity?: string;
   tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
@@ -51,7 +49,7 @@ export default function ConnectionsCatalog({
   const [host, setHost] = useState('');
   const [domain, setDomain] = useState('');
   const [port, setPort] = useState(22);
-  const [protocol, setProtocol] = useState<'SSH' | 'VNC' | 'RDP'>('SSH');
+  const [protocol, setProtocol] = useState<'SSH' | 'VNC'>('SSH');
   const [tagsString, setTagsString] = useState(''); // Text input for creating tags (comma separated)
   const [username, setUsername] = useState('root');
   const [authType, setAuthType] = useState<'PASSWORD' | 'KEY'>('PASSWORD');
@@ -59,8 +57,6 @@ export default function ConnectionsCatalog({
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [ignoreCert, setIgnoreCert] = useState(false);
-  const [screenSize, setScreenSize] = useState('1024x768');
-  const [rdpSecurity, setRdpSecurity] = useState('any');
 
   // Filtering Connections (Finding #tags-filter)
   const [selectedTag, setSelectedTag] = useState('');
@@ -84,9 +80,7 @@ export default function ConnectionsCatalog({
     setPrivateKey('');
     setPassphrase('');
     setIgnoreCert(false);
-    setScreenSize('1024x768');
-    setRdpSecurity('any');
-    setEditingEditingConnection(null);
+setEditingEditingConnection(null);
     setError(null);
   };
 
@@ -109,9 +103,7 @@ export default function ConnectionsCatalog({
     setPrivateKey(''); // never leak private key back
     setPassphrase('');
     setIgnoreCert(conn.ignoreCert || false);
-    setScreenSize(conn.screenSize || '1024x768');
-    setRdpSecurity(conn.rdpSecurity || 'any');
-    setError(null);
+setError(null);
     setShowModal(true);
   };
 
@@ -139,10 +131,8 @@ export default function ConnectionsCatalog({
         host,
         domain: domain || null,
         port: Number(port),
-        protocol, // include protocol parameter (SSH / VNC / RDP)
+        protocol, // include protocol parameter (SSH / VNC)
         ignoreCert, // include certificate validation preference
-        screenSize, // include selectable display resolution
-        rdpSecurity, // include selectable RDP security mode
         tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
@@ -342,8 +332,6 @@ export default function ConnectionsCatalog({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {conn.protocol === 'VNC' ? (
                       <span style={{ color: 'var(--success)', display: 'flex' }}>📺</span>
-                    ) : conn.protocol === 'RDP' ? (
-                      <span style={{ color: 'var(--accent)', display: 'flex' }}>🖥️</span>
                     ) : (
                       <Terminal size={20} style={{ color: 'var(--accent)' }} />
                     )}
@@ -402,7 +390,7 @@ export default function ConnectionsCatalog({
                 </div>
 
                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
-                  <a href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}` : conn.protocol === 'RDP' ? `/connections/rdp/${conn.id}` : `/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+                  <a href={conn.protocol === 'VNC' ? `/connections/vnc/${conn.id}`  : `/connections/${conn.id}`} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
                     Connect
                   </a>
 
@@ -472,14 +460,14 @@ export default function ConnectionsCatalog({
                   className="input-field"
                   value={protocol}
                   onChange={(e) => {
-                    const newProto = e.target.value as 'SSH' | 'VNC' | 'RDP';
+                    const newProto = e.target.value as 'SSH' | 'VNC';
                     setProtocol(newProto);
                     // Dynamically update standard ports
                     if (newProto === 'VNC') setPort(5900);
-                    else if (newProto === 'RDP') setPort(3389);
+                    
                     else setPort(22);
                     
-                    if (newProto === 'VNC' || newProto === 'RDP') {
+                    if (newProto === 'VNC') {
                       setAuthType('PASSWORD');
                     }
                   }}
@@ -488,7 +476,7 @@ export default function ConnectionsCatalog({
                 >
                   <option value="SSH">SSH — Secure Terminal Access</option>
                   <option value="VNC">VNC — Browser-Based Desktop Viewer</option>
-                  <option value="RDP">RDP — Windows/Linux Remote Desktop Console</option>
+                  
                 </select>
               </div>
               <div className="form-group">
@@ -625,65 +613,7 @@ export default function ConnectionsCatalog({
                       required={!editingConnection}
                     />
                   </div>
-                  {protocol === 'RDP' && (
-                    <>
-                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                        <label htmlFor="conn-screenSize" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Resolution</label>
-                        <select
-                          id="conn-screenSize"
-                          className="input-field"
-                          value={screenSize}
-                          onChange={(e) => setScreenSize(e.target.value)}
-                          disabled={loading}
-                          style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
-                        >
-                          <option value="1024x768">1024 × 768 (Default)</option>
-                          <option value="1280x720">1280 × 720 (HD)</option>
-                          <option value="1280x1024">1280 × 1024</option>
-                          <option value="1366x768">1366 × 768</option>
-                          <option value="1440x900">1440 × 900</option>
-                          <option value="1600x900">1600 × 900</option>
-                          <option value="1920x1080">1920 × 1080 (Full HD)</option>
-                          <option value="2560x1440">2560 × 1440 (2K)</option>
-                        </select>
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                        <label htmlFor="conn-rdpSecurity" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>RDP Security Mode</label>
-                        <select
-                          id="conn-rdpSecurity"
-                          className="input-field"
-                          value={rdpSecurity}
-                          onChange={(e) => setRdpSecurity(e.target.value)}
-                          disabled={loading}
-                          style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
-                        >
-                          <option value="any">Negotiate Security (Default)</option>
-                          <option value="nla">NLA — Network Level Authentication</option>
-                          <option value="tls">TLS — Transport Layer Security</option>
-                          <option value="rdp">RDP — Legacy Standard Security</option>
-                          <option value="vmconnect">VMConnect — Hyper-V Console Mode</option>
-                        </select>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                          💡 Local/Workgroup accounts usually require switching from NLA to <strong>TLS</strong> or <strong>RDP</strong>.
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  {(protocol === 'RDP' || protocol === 'VNC') && (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>
-                      <input
-                        type="checkbox"
-                        id="conn-ignoreCert"
-                        checked={ignoreCert}
-                        onChange={(e) => setIgnoreCert(e.target.checked)}
-                        disabled={loading}
-                        style={{ cursor: 'pointer', width: '16px', height: '16px', marginTop: '2px', flexShrink: 0 }}
-                      />
-                      <label htmlFor="conn-ignoreCert" style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-secondary)', userSelect: 'none', margin: 0, fontWeight: 500, display: 'inline', width: 'auto' }}>
-                        Ignore SSL / TLS certificate errors (For self-signed homelab certs)
-                      </label>
-                    </div>
-                  )}
+                  
                 </>
               ) : (
                 <>

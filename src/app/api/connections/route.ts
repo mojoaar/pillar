@@ -36,8 +36,6 @@ export async function GET(request: NextRequest) {
       port: c.port,
       protocol: c.protocol, // include protocol
       ignoreCert: c.ignoreCert,
-      screenSize: (c as any).screenSize,
-      rdpSecurity: (c as any).rdpSecurity,
       tags: c.tags ? c.tags.split(',') : [], // include connection tags as string array (Finding #tags)
       username: c.username,
       authType: c.authType,
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert, screenSize, rdpSecurity } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -101,12 +99,6 @@ export async function POST(request: NextRequest) {
     const encryptedPassphrase = passphrase ? encrypt(passphrase) : null;
 
     // 2. Insert secure connection profile into SQLite
-    const validSizes = ['1024x768', '1280x720', '1280x1024', '1366x768', '1440x900', '1600x900', '1920x1080', '2560x1440'];
-    const validatedSize = validSizes.includes(screenSize) ? screenSize : '1024x768';
-
-    const validSecModes = ['any', 'nla', 'tls', 'rdp', 'vmconnect'];
-    const validatedSec = validSecModes.includes(rdpSecurity) ? rdpSecurity : 'any';
-
     const connection = await db.connection.create({
       data: {
         userId: session.user.id as string,
@@ -114,10 +106,8 @@ export async function POST(request: NextRequest) {
         host: host.trim(),
         domain: domain ? domain.trim() : null,
         port: parsedPort,
-        protocol: ['SSH', 'VNC', 'RDP'].includes(protocol) ? protocol : 'SSH',
+        protocol: ['SSH', 'VNC'].includes(protocol) ? protocol : 'SSH',
         ignoreCert: Boolean(ignoreCert),
-        screenSize: validatedSize,
-        rdpSecurity: validatedSec,
         tags: sanitizedTags,
         username: username.trim(),
         authType: authType === 'KEY' ? 'KEY' : 'PASSWORD',

@@ -16,24 +16,11 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - GUACD_HOST=guacd
-      - GUACD_PORT=4822
     volumes:
       # Mount persistent local storage volumes for SQLite databases and user uploads
       - pillar-data:/app/data
       - pillar-uploads:/app/public/uploads
-    depends_on:
-      - guacd
 
-  # Apache Guacamole daemon sidecar container managing RDP, VNC, and SSH protocol translation (Phase 10)
-  guacd:
-    image: guacamole/guacd:1.5.4
-    container_name: pillar-guacd
-    restart: unless-stopped
-    ports:
-      - "4822:4822"
-    environment:
-      - GUACD_LOG_LEVEL=debug
 
 volumes:
   pillar-data:

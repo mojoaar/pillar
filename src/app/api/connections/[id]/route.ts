@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert, screenSize, rdpSecurity } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
@@ -51,18 +51,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updateData.port = parsedPort;
     }
     if (protocol) {
-      updateData.protocol = ['SSH', 'VNC', 'RDP'].includes(protocol) ? protocol : 'SSH';
+      updateData.protocol = ['SSH', 'VNC'].includes(protocol) ? protocol : 'SSH';
     }
     if (ignoreCert !== undefined) {
       updateData.ignoreCert = Boolean(ignoreCert);
-    }
-    if (screenSize !== undefined) {
-      const validSizes = ['1024x768', '1280x720', '1280x1024', '1366x768', '1440x900', '1600x900', '1920x1080', '2560x1440'];
-      updateData.screenSize = validSizes.includes(screenSize) ? screenSize : '1024x768';
-    }
-    if (rdpSecurity !== undefined) {
-      const validSecModes = ['any', 'nla', 'tls', 'rdp', 'vmconnect'];
-      updateData.rdpSecurity = validSecModes.includes(rdpSecurity) ? rdpSecurity : 'any';
     }
     
     // Sanitize incoming tags updates (Finding #tags)
@@ -128,8 +120,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         port: updated.port,
         username: updated.username,
         authType: updated.authType,
-        screenSize: (updated as any).screenSize,
-        rdpSecurity: (updated as any).rdpSecurity,
       },
       ok: true,
     });

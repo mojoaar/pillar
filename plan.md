@@ -1,7 +1,7 @@
 # Pillar — Implementation Plan (Completed)
 
 ## Project Overview
-Pillar is a self-hosted, responsive, and secure web-based remote-access gateway for homelabs. It enables starting secure browser-based SSH sessions, and is designed for future extension with VNC, RDP, and Proxmox API integration.
+Pillar is a self-hosted, responsive, and secure web-based remote-access gateway for homelabs. It enables starting secure browser-based SSH sessions, and is designed for future extension with VNC and Proxmox API integration.
 
 ## Tech Stack
 - **Frontend**: Next.js 15+ (App Router), React 19, TypeScript
@@ -21,7 +21,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Prisma SQLite configuration with `connection_limit=1` for WAL mode safety
 - [x] Define database models:
   - `User` (id, email, name, username, role, passwordHash, avatarUrl, mfaSecret [encrypted], mfaEnabled, mfaEnforced, createdAt, updatedAt)
-  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, screenSize, rdpSecurity, createdAt, updatedAt)
+  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, createdAt, updatedAt)
   - `SharedConnection` (connectionId, userId) join table for user-level connection sharing
   - `AuditLog` (id, userId, event, ip, meta [JSON], createdAt)
 - [x] Code encryption helpers (`lib/crypto.ts`) implementing AES-256-GCM
@@ -83,12 +83,6 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Node.js RFB (VNC) proxy backend built on Express using a WebSocket to TCP stream bridge
 - [x] Client interface utilizing `@novnc/novnc` canvas rendering
 
-### Phase 10: RDP Gateway Integration
-- [x] Docker Compose sidecar configurations using Apache Guacamole's daemon (`guacd`)
-- [x] Express proxy gateway connecting browser-side clients to `guacd` sessions with full `size`/`audio`/`video`/`image` handshaking
-- [x] Selectable RDP display resolution configurations stored at-rest per-profile
-- [x] Zero-dependency Guacamole protocol handshake implementation inside `server.ts`
-- [x] Interactive web RDP client dynamically importing local-hosted Guacamole resources
 
 ### Phase 11: Proxmox VE API Integration
 - [x] Proxmox token authentication storage
@@ -115,15 +109,14 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Validate callbackUrl is relative path in LoginForm.tsx
 - [x] Add Origin header validation to all 4 WebSocket handlers
 - [x] Move JWT cookie validation BEFORE wss.handleUpgrade() in upgrade interceptor
-- [x] Add SRI integrity hashes to CDN scripts (RdpViewerWindow)
+- [x] Add SRI integrity hashes to CDN scripts 
 - [x] Remove unsafe-eval from CSP; add Strict-Transport-Security header
 
 #### 🟠 Tier 2 — HIGH Severity
 - [x] Standardize all auth error messages to generic "Invalid credentials"
 - [x] Add optimistic locking to backup code redemption
 - [x] Add periodic sweep to clean expired rateLimitBuckets keys
-- [x] Make ignore-cert a per-connection RDP setting (via tags: `rdp-ignore-cert`)
-- [x] Add SSH keepalive + TCP keepalive to VNC/guacd sockets
+- [x] Add SSH keepalive + TCP keepalive to VNC sockets
 - [x] Wrap watchdog cleanup in try/finally to guarantee session delete
 - [x] Add try/catch around decodeURIComponent in parseCookies()
 
@@ -134,7 +127,6 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Increase API key entropy to 256 bits
 - [x] Add app.set('trust proxy', 1)
 - [ ] Add per-user concurrent session cap
-- [x] Sanitize Guacamole instruction args against protocol delimiters
 - [x] Return generic errors in Proxmox API; log real errors server-side
 - [x] Validate NEXTAUTH_SECRET length >= 32 at startup
 - [x] Fix vmid=0 falsy check in Proxmox POST

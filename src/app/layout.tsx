@@ -8,14 +8,14 @@ export const metadata: Metadata = {
     default: 'Pillar — Remote Access Gateway',
     template: '%s | Pillar',
   },
-  description: 'Self-hosted, secure browser-based remote-access gateway. Launch SSH, VNC, and RDP bridges to your servers with MFA protection.',
-  keywords: ['remote access', 'SSH', 'VNC', 'RDP', 'gateway', 'self-hosted', 'Proxmox'],
+  description: 'Self-hosted, secure browser-based remote-access gateway. Launch SSH and VNC bridges to your servers with MFA protection.',
+  keywords: ['remote access', 'SSH', 'VNC', 'gateway', 'self-hosted', 'Proxmox'],
   authors: [{ name: 'Pillar' }],
   creator: 'Pillar',
   metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
   openGraph: {
     title: 'Pillar — Remote Access Gateway',
-    description: 'Secure browser-based SSH, VNC, and RDP bridges. Multi-factor authentication, encrypted at rest.',
+    description: 'Secure browser-based SSH and VNC bridges. Multi-factor authentication, encrypted at rest.',
     siteName: 'Pillar',
     type: 'website',
     locale: 'en_US',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary',
     title: 'Pillar — Remote Access Gateway',
-    description: 'Secure browser-based SSH, VNC, and RDP bridges.',
+    description: 'Secure browser-based SSH and VNC bridges.',
   },
   robots: {
     index: true,
