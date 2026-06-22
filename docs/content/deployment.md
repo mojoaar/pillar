@@ -133,12 +133,12 @@ Pillar runs natively on Node.js with zero containers. Install Node.js 22 LTS and
 apt install -y curl git ca-certificates gnupg build-essential python3
 
 # Install Node.js 22 LTS
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 apt install -y nodejs
 
 # Verify
-node --version     # should be v22.x
-npm --version      # should be 10.x
+node --version     # should be v22.x or newer
+npm --version      # should be 10.x or newer
 ```
 
 ### Option B: Docker Compose (skip if going native)
