@@ -220,31 +220,30 @@ chown -R pillar:pillar /opt/pillar/data
 
 ---
 
-## Step 6 — Build the Application
+## Step 6 — Initialize Database
+
+Create the SQLite database and all tables before building (the build process needs the database for static page generation):
 
 ```bash
 # As the pillar user
 cd /opt/pillar
 
-# Build (generates Prisma client, compiles Next.js, type-checks TypeScript)
-npm run build
-```
-
-This produces the compiled Express gateway server at `dist/server.js`.
-
-> **Troubleshooting:** If the build fails with memory errors, temporarily increase the LXC's RAM to 2048 MB, run the build, then reduce back to 1024 MB.
-
----
-
-## Step 7 — Push Database Schema
-
-Initialize the SQLite database and create all tables:
-
-```bash
 npm run db:push
 ```
 
 This creates `/opt/pillar/data/pillar.db` with the full schema (Users, Connections, Plugins, ApiKeys, AuditLogs).
+
+---
+
+## Step 7 — Build & Compile
+
+```bash
+npm run build
+```
+
+This generates the Prisma client, compiles Next.js, Type-checks the project, and produces the compiled Express gateway server at `dist/server.js`.
+
+> **Troubleshooting:** If the build fails with memory errors, temporarily increase the LXC's RAM to 2048 MB, run the build, then reduce back to 1024 MB.
 
 ---
 
