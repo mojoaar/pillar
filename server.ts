@@ -818,6 +818,17 @@ app.prepare().then(() => {
       const rdpScreenSize = (connection as any).screenSize || '1024x768';
       const [rdpWidth, rdpHeight] = rdpScreenSize.split('x');
 
+      const rdpSecurity = (connection as any).rdpSecurity || 'any';
+
+      // Clean local/Workgroup credentials: if domain is blank and username has "\", split it
+      let rdpDomain = connection.domain || '';
+      let rdpUsername = connection.username;
+      if (!rdpDomain && rdpUsername.includes('\\')) {
+        const domainParts = rdpUsername.split('\\');
+        rdpDomain = domainParts[0];
+        rdpUsername = domainParts[1] || '';
+      }
+
       // Initialize state variables for Guacamole Handshake Protocol negotiation
       let handshook = false;
 
@@ -852,10 +863,10 @@ app.prepare().then(() => {
               if (argName.startsWith('VERSION_')) return '';
               if (argName === 'hostname') return connection.host;
               if (argName === 'port') return (connection.port || 3389).toString();
-              if (argName === 'username') return connection.username;
+              if (argName === 'username') return rdpUsername;
               if (argName === 'password') return decryptedPassword;
-              if (argName === 'domain') return connection.domain || '';
-              if (argName === 'security') return 'any';
+              if (argName === 'domain') return rdpDomain;
+              if (argName === 'security') return rdpSecurity;
               if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
               if (argName === 'width') return rdpWidth || '1024';
               if (argName === 'height') return rdpHeight || '768';
@@ -865,11 +876,8 @@ app.prepare().then(() => {
               return ''; // all other parameters blank
             });
 
-            console.log('[WS-RDP] Received guacd argsList:', argsList);
-            console.log('[WS-RDP] Compiled connect values length:', argValues.length);
             // Send standard connect instruction to finalize handshake (exactly matching args length)
             const inst = guacInstruction('connect', ...argValues);
-            console.log('[WS-RDP] Writing connect instruction (first 150 chars):', inst.substring(0, 150));
 
             // Send complete Guacamole protocol handshake steps (size, audio, video, image) before connect
             if (guacdClient && !guacdClient.destroyed) {

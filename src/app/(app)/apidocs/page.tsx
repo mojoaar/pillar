@@ -103,7 +103,8 @@ const apiSpecs: APIEndpoint[] = [
       authType: 'PASSWORD',
       password: 'RaspberryPassword',
       ignoreCert: false,
-      screenSize: '1024x768'
+      screenSize: '1024x768',
+      rdpSecurity: 'any'
     },
     resBody: {
       data: {
@@ -114,7 +115,8 @@ const apiSpecs: APIEndpoint[] = [
         username: 'pi',
         authType: 'PASSWORD',
         ignoreCert: false,
-        screenSize: '1024x768'
+        screenSize: '1024x768',
+        rdpSecurity: 'any'
       },
       ok: true
     }
@@ -133,7 +135,8 @@ const apiSpecs: APIEndpoint[] = [
       authType: 'KEY',
       privateKey: '-----BEGIN OPENSSH PRIVATE KEY-----...',
       ignoreCert: true,
-      screenSize: '1280x720'
+      screenSize: '1280x720',
+      rdpSecurity: 'tls'
     },
     resBody: {
       data: {
@@ -144,7 +147,8 @@ const apiSpecs: APIEndpoint[] = [
         username: 'pi',
         authType: 'KEY',
         ignoreCert: true,
-        screenSize: '1280x720'
+        screenSize: '1280x720',
+        rdpSecurity: 'tls'
       },
       ok: true
     }

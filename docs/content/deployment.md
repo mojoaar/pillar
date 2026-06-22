@@ -406,6 +406,13 @@ GUACD_HOST=localhost
 GUACD_PORT=4822
 ```
 
+### 💡 Local & Workgroup RDP Account Configurations
+If connecting to a standalone Windows or Linux machine (not bound to an Active Directory Windows Domain):
+1. **Plain Username**: Enter your local username strictly without any backslashes or domain prefixes (e.g. `mojoaar`, not `kalee\mojoaar`).
+2. **Domain field**: Keep the **Domain** field empty. If your username contains `\`, Pillar will automatically split it into domain and username under the hood.
+3. **Security Mode**: Switch **RDP Security Mode** from `Negotiate` (NLA-negotiate) to **`TLS`** or **`RDP`**. Standalone Windows hosts on standard Workgroups often reject NLA authentication requests from un-joined hosts.
+4. **Ignore Certificates**: Check the **Ignore SSL / TLS certificate errors** box, as local machines almost always use self-signed certificates.
+
 Then restart Pillar:
 
 ```bash

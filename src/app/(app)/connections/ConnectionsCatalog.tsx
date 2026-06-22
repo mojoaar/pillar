@@ -12,6 +12,7 @@ interface ConnectionModel {
   protocol?: 'SSH' | 'VNC' | 'RDP';
   ignoreCert?: boolean;
   screenSize?: string;
+  rdpSecurity?: string;
   tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
@@ -59,6 +60,7 @@ export default function ConnectionsCatalog({
   const [passphrase, setPassphrase] = useState('');
   const [ignoreCert, setIgnoreCert] = useState(false);
   const [screenSize, setScreenSize] = useState('1024x768');
+  const [rdpSecurity, setRdpSecurity] = useState('any');
 
   // Filtering Connections (Finding #tags-filter)
   const [selectedTag, setSelectedTag] = useState('');
@@ -83,6 +85,7 @@ export default function ConnectionsCatalog({
     setPassphrase('');
     setIgnoreCert(false);
     setScreenSize('1024x768');
+    setRdpSecurity('any');
     setEditingEditingConnection(null);
     setError(null);
   };
@@ -107,6 +110,7 @@ export default function ConnectionsCatalog({
     setPassphrase('');
     setIgnoreCert(conn.ignoreCert || false);
     setScreenSize(conn.screenSize || '1024x768');
+    setRdpSecurity(conn.rdpSecurity || 'any');
     setError(null);
     setShowModal(true);
   };
@@ -138,6 +142,7 @@ export default function ConnectionsCatalog({
         protocol, // include protocol parameter (SSH / VNC / RDP)
         ignoreCert, // include certificate validation preference
         screenSize, // include selectable display resolution
+        rdpSecurity, // include selectable RDP security mode
         tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
@@ -459,7 +464,7 @@ export default function ConnectionsCatalog({
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} autoComplete="off">
               <div className="form-group">
                 <label htmlFor="conn-protocol">Connection Protocol</label>
                 <select
@@ -610,6 +615,8 @@ export default function ConnectionsCatalog({
                     <input
                       type="password"
                       id="conn-password"
+                      name="conn-pwd-field"
+                      autoComplete="new-password"
                       className="input-field"
                       placeholder="••••••••"
                       value={password}
@@ -619,26 +626,48 @@ export default function ConnectionsCatalog({
                     />
                   </div>
                   {protocol === 'RDP' && (
-                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                      <label htmlFor="conn-screenSize" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Resolution</label>
-                      <select
-                        id="conn-screenSize"
-                        className="input-field"
-                        value={screenSize}
-                        onChange={(e) => setScreenSize(e.target.value)}
-                        disabled={loading}
-                        style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
-                      >
-                        <option value="1024x768">1024 × 768 (Default)</option>
-                        <option value="1280x720">1280 × 720 (HD)</option>
-                        <option value="1280x1024">1280 × 1024</option>
-                        <option value="1366x768">1366 × 768</option>
-                        <option value="1440x900">1440 × 900</option>
-                        <option value="1600x900">1600 × 900</option>
-                        <option value="1920x1080">1920 × 1080 (Full HD)</option>
-                        <option value="2560x1440">2560 × 1440 (2K)</option>
-                      </select>
-                    </div>
+                    <>
+                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                        <label htmlFor="conn-screenSize" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Resolution</label>
+                        <select
+                          id="conn-screenSize"
+                          className="input-field"
+                          value={screenSize}
+                          onChange={(e) => setScreenSize(e.target.value)}
+                          disabled={loading}
+                          style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
+                        >
+                          <option value="1024x768">1024 × 768 (Default)</option>
+                          <option value="1280x720">1280 × 720 (HD)</option>
+                          <option value="1280x1024">1280 × 1024</option>
+                          <option value="1366x768">1366 × 768</option>
+                          <option value="1440x900">1440 × 900</option>
+                          <option value="1600x900">1600 × 900</option>
+                          <option value="1920x1080">1920 × 1080 (Full HD)</option>
+                          <option value="2560x1440">2560 × 1440 (2K)</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                        <label htmlFor="conn-rdpSecurity" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>RDP Security Mode</label>
+                        <select
+                          id="conn-rdpSecurity"
+                          className="input-field"
+                          value={rdpSecurity}
+                          onChange={(e) => setRdpSecurity(e.target.value)}
+                          disabled={loading}
+                          style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
+                        >
+                          <option value="any">Negotiate Security (Default)</option>
+                          <option value="nla">NLA — Network Level Authentication</option>
+                          <option value="tls">TLS — Transport Layer Security</option>
+                          <option value="rdp">RDP — Legacy Standard Security</option>
+                          <option value="vmconnect">VMConnect — Hyper-V Console Mode</option>
+                        </select>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                          💡 Local/Workgroup accounts usually require switching from NLA to <strong>TLS</strong> or <strong>RDP</strong>.
+                        </span>
+                      </div>
+                    </>
                   )}
                   {(protocol === 'RDP' || protocol === 'VNC') && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>

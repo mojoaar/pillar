@@ -21,7 +21,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Prisma SQLite configuration with `connection_limit=1` for WAL mode safety
 - [x] Define database models:
   - `User` (id, email, name, username, role, passwordHash, avatarUrl, mfaSecret [encrypted], mfaEnabled, mfaEnforced, createdAt, updatedAt)
-  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, screenSize, createdAt, updatedAt)
+  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, screenSize, rdpSecurity, createdAt, updatedAt)
   - `SharedConnection` (connectionId, userId) join table for user-level connection sharing
   - `AuditLog` (id, userId, event, ip, meta [JSON], createdAt)
 - [x] Code encryption helpers (`lib/crypto.ts`) implementing AES-256-GCM
