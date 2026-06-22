@@ -784,22 +784,8 @@ app.prepare().then(() => {
     const connectionId = query.connectionId as string;
     const sessionId = Math.random().toString(36).substring(2, 9);
     
-    let guacdClient: net.Socket | null = null;
+    const guacdClient: net.Socket = new net.Socket();
     let isHandshakeComplete = false;
-
-    // Message handler — queues early, processes live after guacdClient ready
-    const rawMessageQueue: string[] = [];
-    let processingActive = false;
-    ws.on('message', (message) => {
-      const raw = message.toString();
-      rawMessageQueue.push(raw);
-      if (processingActive) {
-        while (rawMessageQueue.length > 0) {
-          // @ts-ignore - assigned before any message callback fires
-          processBrowserMessage(rawMessageQueue.shift()!);
-        }
-      }
-    });
 
     // Handshaking watchdog timeout
     const handshakeTimeout = setTimeout(() => {
@@ -877,13 +863,6 @@ app.prepare().then(() => {
       const guacdHost = process.env.GUACD_HOST || 'localhost';
       const guacdPort = Number(process.env.GUACD_PORT) || 4822;
 
-      // Connect to Guacamole Daemon sidecar container (Finding #guac-tunnel)
-      guacdClient = net.createConnection({
-        host: guacdHost,
-        port: guacdPort,
-      });
-      guacdClient.setKeepAlive(true, 10000);
-
       // Determine per-connection cert verification: configurable via connection schema field
       const ignoreRdpCert = connection.ignoreCert;
       const decryptedPassword = connection.password ? decrypt(connection.password) : '';
@@ -903,34 +882,60 @@ app.prepare().then(() => {
         rdpUsername = domainParts[1] || '';
       }
 
-      // Initialize state variables for Guacamole Handshake Protocol negotiation
-      let argsList: string[] = [];
-      let browserBuffer = '';
-      let connectIntercepted = false;
+      // Capture browser messages before the TCP connection is established
+      let handshook = false;
       let guacdBuffer = '';
-      const rdpHost = connection.host;
-      const rdpPort = (connection.port || 3389).toString();
+      const pendingBrowserMessages: string[] = [];
+      ws.on('message', (message) => {
+        const raw = message.toString();
+        if (raw.length === 0) return;
 
-      // Processing function for browser→guacd messages
-      function processBrowserMessage(payload: string) {
-        if (!guacdClient || guacdClient.destroyed) return;
-
-        if (connectIntercepted) {
-          if (payload.length > 0) guacdClient.write(payload);
-          return;
+        if (guacdClient && !guacdClient.destroyed) {
+          if (raw.startsWith('7.connect')) return;
+          guacdClient.write(raw);
+        } else {
+          pendingBrowserMessages.push(raw);
         }
+      });
 
-        browserBuffer += payload;
-        const parsed = parseGuacInstructions(browserBuffer);
-        browserBuffer = parsed.remaining;
+      guacdClient.setKeepAlive(true, 10000);
 
-        for (const inst of parsed.instructions) {
-          console.log('[WS-RDP] browser->guacd opcode:', inst.opcode, 'args:', inst.args.length);
-          if (inst.opcode === 'connect') {
-            const argValues = argsList.map((argName) => {
+      guacdClient.on('error', (err) => {
+        console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(guacInstruction('error', 'Guacamole daemon error', '1'));
+        }
+        ws.close();
+      });
+
+      guacdClient.on('close', () => {
+        console.log(`[WS-RDP] Guacamole sidecar closed target tunnel. Session: ${sessionId}`);
+        ws.close();
+      });
+
+      guacdClient.on('connect', () => {
+        guacdClient.write(guacInstruction('select', 'rdp'));
+        for (const msg of pendingBrowserMessages) {
+          if (!msg.startsWith('7.connect')) guacdClient.write(msg);
+        }
+        pendingBrowserMessages.length = 0;
+      });
+
+      guacdClient.on('data', (data) => {
+        const payload = data.toString();
+        if (ws.readyState === WebSocket.OPEN) ws.send(payload);
+
+        if (!handshook) {
+          guacdBuffer += payload;
+          const parsed = parseGuacInstructions(guacdBuffer);
+          guacdBuffer = parsed.remaining;
+
+          const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
+          if (argsInst) {
+            const argValues = argsInst.args.map((argName: string) => {
               if (argName.startsWith('VERSION_')) return '';
-              if (argName === 'hostname') return rdpHost;
-              if (argName === 'port') return rdpPort;
+              if (argName === 'hostname') return connection.host;
+              if (argName === 'port') return (connection.port || 3389).toString();
               if (argName === 'username') return rdpUsername;
               if (argName === 'password') return decryptedPassword;
               if (argName === 'domain') return rdpDomain;
@@ -944,42 +949,23 @@ app.prepare().then(() => {
               return '';
             });
 
-            const replacedConnect = guacInstruction('connect', ...argValues);
-            guacdClient.write(replacedConnect);
-            connectIntercepted = true;
-          } else {
-            guacdClient.write(guacInstruction(inst.opcode, ...inst.args));
+            guacdClient.write(guacInstruction('connect', ...argValues));
+            handshook = true;
+          }
+        } else {
+          guacdBuffer += payload;
+          const parsed = parseGuacInstructions(guacdBuffer);
+          guacdBuffer = parsed.remaining;
+          for (const inst of parsed.instructions) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(guacInstruction(inst.opcode, ...inst.args));
+            }
           }
         }
-      }
+      });
 
-    // Parse guacd stream to capture argsList, and forward all outputs to WebSocket
-    guacdClient.on('data', (data) => {
-      const payload = data.toString();
-      console.log('[WS-RDP] guacd->browser:', payload.substring(0, 120));
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(payload);
-      }
-
-      if (argsList.length === 0) {
-        guacdBuffer += payload;
-        const parsed = parseGuacInstructions(guacdBuffer);
-        guacdBuffer = parsed.remaining;
-
-        const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
-        if (argsInst) {
-          argsList = argsInst.args;
-          console.log('[WS-RDP] Captured argsList, count:', argsList.length);
-        }
-      }
-    });
-
-    // Flush all browser messages that were queued during async setup
-    console.log('[WS-RDP] Flushing queued messages:', rawMessageQueue.length);
-    while (rawMessageQueue.length > 0) {
-      processBrowserMessage(rawMessageQueue.shift()!);
-    }
-    processingActive = true;
+      // Connect to Guacamole Daemon sidecar container LAST (all listeners registered)
+      guacdClient.connect({ host: guacdHost, port: guacdPort });
 
       guacdClient.on('error', (err) => {
         console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
