@@ -814,6 +814,10 @@ app.prepare().then(() => {
       const ignoreRdpCert = connection.ignoreCert;
       const decryptedPassword = connection.password ? decrypt(connection.password) : '';
 
+      // Parse screen size details dynamically
+      const rdpScreenSize = (connection as any).screenSize || '1024x768';
+      const [rdpWidth, rdpHeight] = rdpScreenSize.split('x');
+
       // Initialize state variables for Guacamole Handshake Protocol negotiation
       let handshook = false;
 
@@ -851,10 +855,10 @@ app.prepare().then(() => {
               if (argName === 'username') return connection.username;
               if (argName === 'password') return decryptedPassword;
               if (argName === 'domain') return connection.domain || '';
-              if (argName === 'security') return 'nla';
+              if (argName === 'security') return 'any';
               if (argName === 'ignore-cert') return ignoreRdpCert ? 'true' : 'false';
-              if (argName === 'width') return '1024';
-              if (argName === 'height') return '768';
+              if (argName === 'width') return rdpWidth || '1024';
+              if (argName === 'height') return rdpHeight || '768';
               if (argName === 'dpi') return '96';
               if (argName === 'color-depth') return '24';
               if (argName === 'client-name') return 'Pillar';
@@ -867,8 +871,12 @@ app.prepare().then(() => {
             const inst = guacInstruction('connect', ...argValues);
             console.log('[WS-RDP] Writing connect instruction (first 150 chars):', inst.substring(0, 150));
 
-            // Send standard connect instruction to finalize handshake
+            // Send complete Guacamole protocol handshake steps (size, audio, video, image) before connect
             if (guacdClient && !guacdClient.destroyed) {
+              guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
+              guacdClient.write(guacInstruction('audio', 'audio/L8', 'audio/L16'));
+              guacdClient.write(guacInstruction('video'));
+              guacdClient.write(guacInstruction('image', 'image/png', 'image/jpeg'));
               guacdClient.write(inst);
               handshook = true;
             }

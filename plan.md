@@ -21,7 +21,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Prisma SQLite configuration with `connection_limit=1` for WAL mode safety
 - [x] Define database models:
   - `User` (id, email, name, username, role, passwordHash, avatarUrl, mfaSecret [encrypted], mfaEnabled, mfaEnforced, createdAt, updatedAt)
-  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, createdAt, updatedAt)
+  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, screenSize, createdAt, updatedAt)
   - `SharedConnection` (connectionId, userId) join table for user-level connection sharing
   - `AuditLog` (id, userId, event, ip, meta [JSON], createdAt)
 - [x] Code encryption helpers (`lib/crypto.ts`) implementing AES-256-GCM
@@ -85,9 +85,10 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 
 ### Phase 10: RDP Gateway Integration
 - [x] Docker Compose sidecar configurations using Apache Guacamole's daemon (`guacd`)
-- [x] Express proxy gateway connecting browser-side clients to `guacd` sessions
+- [x] Express proxy gateway connecting browser-side clients to `guacd` sessions with full `size`/`audio`/`video`/`image` handshaking
+- [x] Selectable RDP display resolution configurations stored at-rest per-profile
 - [x] Zero-dependency Guacamole protocol handshake implementation inside `server.ts`
-- [x] Interactive web RDP client dynamically importing jsDelivr-served Guacamole resources
+- [x] Interactive web RDP client dynamically importing local-hosted Guacamole resources
 
 ### Phase 11: Proxmox VE API Integration
 - [x] Proxmox token authentication storage

@@ -11,6 +11,7 @@ interface ConnectionModel {
   port: number;
   protocol?: 'SSH' | 'VNC' | 'RDP';
   ignoreCert?: boolean;
+  screenSize?: string;
   tags: string[]; // comma-separated tags array
   username: string;
   authType: 'PASSWORD' | 'KEY';
@@ -57,6 +58,7 @@ export default function ConnectionsCatalog({
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [ignoreCert, setIgnoreCert] = useState(false);
+  const [screenSize, setScreenSize] = useState('1024x768');
 
   // Filtering Connections (Finding #tags-filter)
   const [selectedTag, setSelectedTag] = useState('');
@@ -80,6 +82,7 @@ export default function ConnectionsCatalog({
     setPrivateKey('');
     setPassphrase('');
     setIgnoreCert(false);
+    setScreenSize('1024x768');
     setEditingEditingConnection(null);
     setError(null);
   };
@@ -103,6 +106,7 @@ export default function ConnectionsCatalog({
     setPrivateKey(''); // never leak private key back
     setPassphrase('');
     setIgnoreCert(conn.ignoreCert || false);
+    setScreenSize(conn.screenSize || '1024x768');
     setError(null);
     setShowModal(true);
   };
@@ -133,6 +137,7 @@ export default function ConnectionsCatalog({
         port: Number(port),
         protocol, // include protocol parameter (SSH / VNC / RDP)
         ignoreCert, // include certificate validation preference
+        screenSize, // include selectable display resolution
         tags: tagsString, // Send tags string (Finding #tags)
         username,
         authType,
@@ -613,6 +618,28 @@ export default function ConnectionsCatalog({
                       required={!editingConnection}
                     />
                   </div>
+                  {protocol === 'RDP' && (
+                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                      <label htmlFor="conn-screenSize" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Resolution</label>
+                      <select
+                        id="conn-screenSize"
+                        className="input-field"
+                        value={screenSize}
+                        onChange={(e) => setScreenSize(e.target.value)}
+                        disabled={loading}
+                        style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
+                      >
+                        <option value="1024x768">1024 × 768 (Default)</option>
+                        <option value="1280x720">1280 × 720 (HD)</option>
+                        <option value="1280x1024">1280 × 1024</option>
+                        <option value="1366x768">1366 × 768</option>
+                        <option value="1440x900">1440 × 900</option>
+                        <option value="1600x900">1600 × 900</option>
+                        <option value="1920x1080">1920 × 1080 (Full HD)</option>
+                        <option value="2560x1440">2560 × 1440 (2K)</option>
+                      </select>
+                    </div>
+                  )}
                   {(protocol === 'RDP' || protocol === 'VNC') && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>
                       <input

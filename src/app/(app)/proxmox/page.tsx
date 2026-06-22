@@ -50,6 +50,7 @@ export default function ProxmoxDashboard() {
   const [passphrase, setPassphrase] = useState('');
   const [tags, setTags] = useState('proxmox');
   const [ignoreCert, setIgnoreCert] = useState(true);
+  const [screenSize, setScreenSize] = useState('1024x768');
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -95,6 +96,7 @@ export default function ProxmoxDashboard() {
     setPassphrase('');
     setTags('proxmox');
     setIgnoreCert(true);
+    setScreenSize('1024x768');
     setSaveError(null);
     setSaveSuccess(false);
     setIsModalOpen(true);
@@ -112,6 +114,7 @@ export default function ProxmoxDashboard() {
     setPassphrase('');
     setTags('proxmox,hypervisor');
     setIgnoreCert(true);
+    setScreenSize('1024x768');
     setSaveError(null);
     setSaveSuccess(false);
     setIsModalOpen(true);
@@ -139,6 +142,7 @@ export default function ProxmoxDashboard() {
           protocol,
           tags,
           ignoreCert,
+          screenSize,
           username,
           authType,
           password: password || null,
@@ -596,7 +600,29 @@ export default function ProxmoxDashboard() {
                          placeholder="••••••••"
                        />
                      </div>
-                      {(protocol === 'RDP' || protocol === 'VNC') && (
+                     {protocol === 'RDP' && (
+                       <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                         <label htmlFor="import-screenSize" style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Display Resolution</label>
+                         <select
+                           id="import-screenSize"
+                           className="input-field"
+                           value={screenSize}
+                           onChange={(e) => setScreenSize(e.target.value)}
+                           disabled={saveLoading}
+                           style={{ width: '100%', height: '38px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--border-radius)', color: 'var(--text-primary)', padding: '0 0.5rem', cursor: 'pointer' }}
+                         >
+                           <option value="1024x768">1024 × 768 (Default)</option>
+                           <option value="1280x720">1280 × 720 (HD)</option>
+                           <option value="1280x1024">1280 × 1024</option>
+                           <option value="1366x768">1366 × 768</option>
+                           <option value="1440x900">1440 × 900</option>
+                           <option value="1600x900">1600 × 900</option>
+                           <option value="1920x1080">1920 × 1080 (Full HD)</option>
+                           <option value="2560x1440">2560 × 1440 (2K)</option>
+                         </select>
+                       </div>
+                     )}
+                     {(protocol === 'RDP' || protocol === 'VNC') && (
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.25rem 0' }}>
                           <input
                             type="checkbox"

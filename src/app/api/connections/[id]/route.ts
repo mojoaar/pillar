@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert, screenSize } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
@@ -55,6 +55,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (ignoreCert !== undefined) {
       updateData.ignoreCert = Boolean(ignoreCert);
+    }
+    if (screenSize !== undefined) {
+      const validSizes = ['1024x768', '1280x720', '1280x1024', '1366x768', '1440x900', '1600x900', '1920x1080', '2560x1440'];
+      updateData.screenSize = validSizes.includes(screenSize) ? screenSize : '1024x768';
     }
     
     // Sanitize incoming tags updates (Finding #tags)
@@ -120,6 +124,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         port: updated.port,
         username: updated.username,
         authType: updated.authType,
+        screenSize: (updated as any).screenSize,
       },
       ok: true,
     });

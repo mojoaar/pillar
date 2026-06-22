@@ -101,7 +101,9 @@ const apiSpecs: APIEndpoint[] = [
       port: 22,
       username: 'pi',
       authType: 'PASSWORD',
-      password: 'RaspberryPassword'
+      password: 'RaspberryPassword',
+      ignoreCert: false,
+      screenSize: '1024x768'
     },
     resBody: {
       data: {
@@ -110,7 +112,9 @@ const apiSpecs: APIEndpoint[] = [
         host: '192.168.1.15',
         port: 22,
         username: 'pi',
-        authType: 'PASSWORD'
+        authType: 'PASSWORD',
+        ignoreCert: false,
+        screenSize: '1024x768'
       },
       ok: true
     }
@@ -127,7 +131,9 @@ const apiSpecs: APIEndpoint[] = [
       host: '192.168.1.16',
       port: 22,
       authType: 'KEY',
-      privateKey: '-----BEGIN OPENSSH PRIVATE KEY-----...'
+      privateKey: '-----BEGIN OPENSSH PRIVATE KEY-----...',
+      ignoreCert: true,
+      screenSize: '1280x720'
     },
     resBody: {
       data: {
@@ -136,7 +142,9 @@ const apiSpecs: APIEndpoint[] = [
         host: '192.168.1.16',
         port: 22,
         username: 'pi',
-        authType: 'KEY'
+        authType: 'KEY',
+        ignoreCert: true,
+        screenSize: '1280x720'
       },
       ok: true
     }
