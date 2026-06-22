@@ -59,6 +59,66 @@ function guacInstruction(opcode: string, ...args: string[]): string {
   return list.map((a) => `${a.length}.${a}`).join(',') + ';';
 }
 
+// Helper to parse Apache Guacamole protocol instruction stream
+function parseGuacInstructions(buffer: string): { instructions: { opcode: string; args: string[] }[]; remaining: string } {
+  const instructions: { opcode: string; args: string[] }[] = [];
+  let offset = 0;
+
+  while (offset < buffer.length) {
+    let currentOffset = offset;
+    const elements: string[] = [];
+    let completed = false;
+
+    while (currentOffset < buffer.length) {
+      const dotIdx = buffer.indexOf('.', currentOffset);
+      if (dotIdx === -1) break;
+
+      const lenStr = buffer.substring(currentOffset, dotIdx);
+      const len = parseInt(lenStr, 10);
+      if (isNaN(len)) {
+        return { instructions: [], remaining: '' };
+      }
+
+      const valStart = dotIdx + 1;
+      const valEnd = valStart + len;
+      if (valEnd > buffer.length) {
+        break;
+      }
+
+      const val = buffer.substring(valStart, valEnd);
+      elements.push(val);
+
+      const terminator = buffer.charAt(valEnd);
+      if (terminator === ';') {
+        completed = true;
+        currentOffset = valEnd + 1;
+        break;
+      } else if (terminator === ',') {
+        currentOffset = valEnd + 1;
+      } else {
+        return { instructions: [], remaining: '' };
+      }
+    }
+
+    if (completed) {
+      if (elements.length > 0) {
+        instructions.push({
+          opcode: elements[0],
+          args: elements.slice(1)
+        });
+      }
+      offset = currentOffset;
+    } else {
+      break;
+    }
+  }
+
+  return {
+    instructions,
+    remaining: buffer.substring(offset)
+  };
+}
+
 // In-Memory sliding-window rate-limiter bucket registry (Finding #1)
 const rateLimitBuckets = new Map<string, number[]>();
 
@@ -830,35 +890,47 @@ app.prepare().then(() => {
       }
 
       // Initialize state variables for Guacamole Handshake Protocol negotiation
-      let handshook = false;
+      let argsList: string[] = [];
+      let browserBuffer = '';
+      let connectIntercepted = false;
+      let guacdBuffer = '';
 
-      guacdClient.on('connect', () => {
-        // Send initial protocol select instruction
-        if (guacdClient && !guacdClient.destroyed) {
-          guacdClient.write(guacInstruction('select', 'rdp'));
+      // Parse guacd stream to capture argsList, and forward all outputs to WebSocket
+      guacdClient.on('data', (data) => {
+        const payload = data.toString();
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(payload);
+        }
+
+        if (argsList.length === 0) {
+          guacdBuffer += payload;
+          const parsed = parseGuacInstructions(guacdBuffer);
+          guacdBuffer = parsed.remaining;
+
+          const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
+          if (argsInst) {
+            argsList = argsInst.args;
+          }
         }
       });
 
-      // Handle raw stream buffering and handshake parser
-      guacdClient.on('data', (data) => {
-        const payload = data.toString();
+      // Forward WebSocket inputs back to the guacd TCP Client
+      ws.on('message', (message) => {
+        if (!guacdClient || guacdClient.destroyed) return;
 
-        if (!handshook) {
-          // If receiving args list, compile the connect instruction block
-          if (payload.startsWith('4.args,')) {
-            // Simple parsing to split raw instructions: e.g. "4.args,8.hostname,4.port;"
-            // Extracts all supported arg names dynamically
-            const argsList: string[] = [];
-            const parts = payload.substring(7, payload.length - 1).split(',');
-            
-            parts.forEach((p) => {
-              const dotIdx = p.indexOf('.');
-              if (dotIdx !== -1) {
-                argsList.push(p.substring(dotIdx + 1));
-              }
-            });
+        if (connectIntercepted) {
+          // Handshake is complete, forward all subsequent messages verbatim (maximum performance!)
+          guacdClient.write(message.toString());
+          return;
+        }
 
-            // Map connection arguments to the matching guacd instruction parameters
+        browserBuffer += message.toString();
+        const parsed = parseGuacInstructions(browserBuffer);
+        browserBuffer = parsed.remaining;
+
+        for (const inst of parsed.instructions) {
+          if (inst.opcode === 'connect') {
+            // INTERCEPT AND REPLACE CONNECT
             const argValues = argsList.map((argName) => {
               if (argName.startsWith('VERSION_')) return '';
               if (argName === 'hostname') return connection.host;
@@ -876,31 +948,13 @@ app.prepare().then(() => {
               return ''; // all other parameters blank
             });
 
-            // Send standard connect instruction to finalize handshake (exactly matching args length)
-            const inst = guacInstruction('connect', ...argValues);
-
-            // Send complete Guacamole protocol handshake steps (size, audio, video, image) before connect
-            if (guacdClient && !guacdClient.destroyed) {
-              guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
-              guacdClient.write(guacInstruction('audio', 'audio/L8', 'audio/L16'));
-              guacdClient.write(guacInstruction('video'));
-              guacdClient.write(guacInstruction('image', 'image/png', 'image/jpeg'));
-              guacdClient.write(inst);
-              handshook = true;
-            }
+            const replacedConnect = guacInstruction('connect', ...argValues);
+            guacdClient.write(replacedConnect);
+            connectIntercepted = true;
+          } else {
+            // Forward select, size, audio, video, image, etc. verbatim
+            guacdClient.write(guacInstruction(inst.opcode, ...inst.args));
           }
-        } else {
-          // Once handshake is completed, forward all stream outputs directly to WebSocket
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(payload);
-          }
-        }
-      });
-
-      // Forward WebSocket inputs back to the guacd TCP Client immediately to preserve handshake messages like size
-      ws.on('message', (message) => {
-        if (guacdClient && !guacdClient.destroyed) {
-          guacdClient.write(message.toString());
         }
       });
 
