@@ -892,6 +892,8 @@ app.prepare().then(() => {
 
       guacdClient.on('data', (data) => {
         const payload = data.toString();
+        // Forward everything to browser so Guacamole.Client receives args/ready/etc
+        if (ws.readyState === WebSocket.OPEN) ws.send(payload);
         guacdBuffer += payload;
 
         if (!handshook) {
@@ -922,15 +924,6 @@ app.prepare().then(() => {
             guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
             guacdClient.write(guacInstruction('connect', ...argValues));
             handshook = true;
-          }
-        } else {
-          // Forward raw guacd output to browser — boundary-safe via parse→re-serialize
-          const parsed = parseGuacInstructions(guacdBuffer);
-          guacdBuffer = parsed.remaining;
-          for (const inst of parsed.instructions) {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(guacInstruction(inst.opcode, ...inst.args));
-            }
           }
         }
       });
