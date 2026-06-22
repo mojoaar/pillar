@@ -380,7 +380,7 @@ const apiSpecs: APIEndpoint[] = [
     path: '/api/plugins/proxmox',
     desc: 'Fetch real-time Proxmox VE cluster status. Returns node health metrics, running VMs (QEMU), and containers (LXC) with CPU, RAM, and uptime data. Requires the Proxmox VE plugin to be enabled and the user authorized.',
     auth: 'USER',
-    resBody: { enabled: true, connected: true, data: { nodes: [{ node: 'pve', status: 'online', cpu: 0.15, mem: 8589934592 }], resources: [{ id: 'qemu/100', name: 'web-server', type: 'qemu', status: 'running', cpu: 0.04, mem: 2147483648 }] }, ok: true }
+    resBody: { enabled: true, connected: true, data: { nodes: [{ node: 'pve', status: 'online', os: 'Proxmox VE pve-manager/8.2', cpu: 0.15, mem: 8589934592 }], resources: [{ id: 'qemu/100', name: 'web-server', type: 'qemu', status: 'running', os: 'Ubuntu 22.04', cpu: 0.04, mem: 2147483648 }] }, ok: true }
   }
 ];
 

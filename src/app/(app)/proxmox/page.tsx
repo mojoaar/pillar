@@ -11,6 +11,7 @@ interface ProxmoxResource {
   node: string;
   vmid?: number;
   status: string; // 'running', 'stopped', etc.
+  os?: string;
   cpu?: number;
   maxcpu?: number;
   mem?: number;
@@ -22,6 +23,7 @@ interface NodeResource {
   node: string;
   status: string;
   ip?: string;
+  os?: string;
   cpu?: number;
   maxcpu?: number;
   mem?: number;
@@ -268,12 +270,15 @@ setSaveError(null);
                       <Activity size={18} style={{ color: node.status === 'online' ? 'var(--success)' : 'var(--danger)' }} />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ fontSize: '1.05rem' }}>{node.node}</strong>
+                        {node.os && <span style={{ fontSize: '0.65rem', color: 'var(--accent)' }}>{node.os}</span>}
                         {node.ip && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--terminal-font)' }}>{node.ip}</span>}
                       </div>
                     </div>
-                    <span className={`badge ${node.status === 'online' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.65rem' }}>
-                      {node.status}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-end' }}>
+                      <span className={`badge ${node.status === 'online' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.65rem' }}>
+                        {node.status}
+                      </span>
+                    </div>
                   </div>
 
                   {node.status === 'online' && (
@@ -360,6 +365,7 @@ setSaveError(null);
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{vm.name}</strong>
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ID: {vm.vmid} • Node: {vm.node}</span>
+                        {vm.os && <span style={{ fontSize: '0.7rem', color: 'var(--accent)' }}>{vm.os}</span>}
                         {(vm as any).network && <span style={{ fontSize: '0.7rem', color: 'var(--accent)', fontFamily: 'var(--terminal-font)' }}>{(vm as any).network}</span>}
                       </div>
                     </div>

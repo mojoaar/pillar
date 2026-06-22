@@ -63,6 +63,16 @@ function httpsRequest(
   });
 }
 
+// Maps Proxmox ostype config codes to human-readable OS labels
+const OS_TYPE_MAP: Record<string, string> = {
+  l24: 'Linux 2.4', l26: 'Linux', debian: 'Debian', ubuntu: 'Ubuntu',
+  centos: 'CentOS', fedora: 'Fedora', alpine: 'Alpine', archlinux: 'Arch',
+  opensuse: 'openSUSE',
+  win7: 'Windows 7', win8: 'Windows 8', win10: 'Windows 10', win11: 'Windows 11',
+  w2k19: 'Windows Server 2019', w2k22: 'Windows Server 2022', win2025: 'Windows Server 2025',
+  solaris: 'Solaris', other: 'Other',
+};
+
 export class ProxmoxClient {
   private apiUrl: string;
   private apiToken: string;
@@ -184,6 +194,32 @@ export class ProxmoxClient {
       port: res.data?.port || 5900,
       ticket: res.data?.ticket || '',
     };
+  }
+
+  /**
+   * Tries to get detailed OS info from QEMU guest agent (running VMs only).
+   * Returns human-readable OS name, or null if guest agent is not available.
+   */
+  async getVmOsInfo(node: string, vmid: number): Promise<string | null> {
+    try {
+      const url = `${this.apiUrl}/nodes/${node}/qemu/${vmid}/agent`;
+      const res = await httpsRequest(
+        url, 'POST', this.getHeaders(),
+        JSON.stringify({ command: 'get-osinfo' }),
+        this.verifySsl
+      );
+      const result = res.data?.result;
+      return result?.name || result?.['pretty-name'] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Maps a raw Proxmox ostype config string to a human-readable OS label.
+   */
+  static mapOsType(ostype: string): string {
+    return OS_TYPE_MAP[ostype] || ostype || 'Unknown';
   }
 
   /**

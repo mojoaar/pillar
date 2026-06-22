@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       return {
         ...n,
         ip: nodeIps.get(n.node) || null,
+        os: stats.pveversion ? `Proxmox VE ${stats.pveversion}` : null,
         cpu: stats.cpu ?? n.cpu,
         maxcpu: stats.cpuinfo?.cpus ?? n.maxcpu,
         mem: stats.memory?.used ?? n.mem,
@@ -104,7 +105,16 @@ export async function GET(request: NextRequest) {
               ip = await client.getVmIp(r.node, r.vmid, r.type);
             } catch {}
           }
-          return { ...r, network: ip || (bridgeMatch ? bridgeMatch[1] : null) };
+          // Extract OS type from config
+          let os = cfg.ostype ? ProxmoxClient.mapOsType(cfg.ostype) : null;
+          // Try guest agent for running QEMU VMs (best-effort, overrides config ostype)
+          if (r.type === 'qemu' && r.status === 'running') {
+            try {
+              const guestOs = await client.getVmOsInfo(r.node, r.vmid);
+              if (guestOs) os = guestOs;
+            } catch {}
+          }
+          return { ...r, network: ip || (bridgeMatch ? bridgeMatch[1] : null), os };
         } catch {
           return r;
         }
