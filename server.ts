@@ -882,21 +882,25 @@ app.prepare().then(() => {
         rdpUsername = domainParts[1] || '';
       }
 
-      // Capture browser messages before the TCP connection is established
+      // Server-driven Guacamole handshake — proven to reach Connected state
       let handshook = false;
-      let argsList: string[] = [];
       let guacdBuffer = '';
-      const pendingBrowserMessages: string[] = [];
-      ws.on('message', (message) => {
-        const raw = message.toString();
-        if (raw.length === 0) return;
 
-        if (guacdClient && !guacdClient.destroyed) {
-          if (handshook) {
-            // Pipe active — every instruction goes verbatim to guacd
-            guacdClient.write(raw);
-          } else if (raw.startsWith('7.connect,') && argsList.length > 0) {
-            // Intercept browser's connect — send credentialed connect LAST
+      guacdClient.on('connect', () => {
+        guacdClient.write(guacInstruction('select', 'rdp'));
+      });
+
+      guacdClient.on('data', (data) => {
+        const payload = data.toString();
+        guacdBuffer += payload;
+
+        if (!handshook) {
+          const parsed = parseGuacInstructions(guacdBuffer);
+          guacdBuffer = parsed.remaining;
+
+          const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
+          if (argsInst) {
+            const argsList = argsInst.args;
             const argValues = argsList.map((argName: string) => {
               if (argName.startsWith('VERSION_')) return '';
               if (argName === 'hostname') return connection.host;
@@ -913,14 +917,28 @@ app.prepare().then(() => {
               if (argName === 'client-name') return 'Pillar';
               return '';
             });
+
+            // Send size FIRST so FreeRDP gets real resolution, then credentialed connect
+            guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
             guacdClient.write(guacInstruction('connect', ...argValues));
             handshook = true;
-          } else {
-            // Forward select, size, audio, video, image verbatim (INCLUDING to guacd)
-            guacdClient.write(raw);
           }
         } else {
-          pendingBrowserMessages.push(raw);
+          // Forward raw guacd output to browser — boundary-safe via parse→re-serialize
+          const parsed = parseGuacInstructions(guacdBuffer);
+          guacdBuffer = parsed.remaining;
+          for (const inst of parsed.instructions) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(guacInstruction(inst.opcode, ...inst.args));
+            }
+          }
+        }
+      });
+
+      // Gate browser messages — drop all until handshake complete
+      ws.on('message', (message) => {
+        if (handshook && guacdClient && !guacdClient.destroyed) {
+          guacdClient.write(message.toString());
         }
       });
 
@@ -937,39 +955,6 @@ app.prepare().then(() => {
       guacdClient.on('close', () => {
         console.log(`[WS-RDP] Guacamole sidecar closed target tunnel. Session: ${sessionId}`);
         ws.close();
-      });
-
-      guacdClient.on('connect', () => {
-        guacdClient.write(guacInstruction('select', 'rdp'));
-        for (const msg of pendingBrowserMessages) {
-          if (!msg.startsWith('7.connect')) guacdClient.write(msg);
-        }
-        pendingBrowserMessages.length = 0;
-      });
-
-      guacdClient.on('data', (data) => {
-        const payload = data.toString();
-        if (ws.readyState === WebSocket.OPEN) ws.send(payload);
-
-        if (!handshook) {
-          guacdBuffer += payload;
-          const parsed = parseGuacInstructions(guacdBuffer);
-          guacdBuffer = parsed.remaining;
-
-          const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
-          if (argsInst && argsList.length === 0) {
-            argsList = argsInst.args;
-          }
-        } else {
-          guacdBuffer += payload;
-          const parsed = parseGuacInstructions(guacdBuffer);
-          guacdBuffer = parsed.remaining;
-          for (const inst of parsed.instructions) {
-            if (ws.readyState === WebSocket.OPEN) {
-              ws.send(guacInstruction(inst.opcode, ...inst.args));
-            }
-          }
-        }
       });
 
       // Connect to Guacamole Daemon sidecar container LAST (all listeners registered)
