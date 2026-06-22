@@ -882,9 +882,10 @@ app.prepare().then(() => {
         rdpUsername = domainParts[1] || '';
       }
 
-      // Server-driven Guacamole handshake — proven to reach Connected state
+      // Server-driven Guacamole handshake with browser message buffering
       let handshook = false;
       let guacdBuffer = '';
+      const browserBuffer: string[] = [];
 
       guacdClient.on('connect', () => {
         guacdClient.write(guacInstruction('select', 'rdp'));
@@ -892,13 +893,18 @@ app.prepare().then(() => {
 
       guacdClient.on('data', (data) => {
         const payload = data.toString();
-        // Forward everything to browser so Guacamole.Client receives args/ready/etc
-        if (ws.readyState === WebSocket.OPEN) ws.send(payload);
         guacdBuffer += payload;
 
         if (!handshook) {
           const parsed = parseGuacInstructions(guacdBuffer);
           guacdBuffer = parsed.remaining;
+
+          // Forward parsed instructions to browser so Guacamole.Client receives args
+          for (const inst of parsed.instructions) {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(guacInstruction(inst.opcode, ...inst.args));
+            }
+          }
 
           const argsInst = parsed.instructions.find((inst) => inst.opcode === 'args');
           if (argsInst) {
@@ -920,18 +926,32 @@ app.prepare().then(() => {
               return '';
             });
 
-            // Send size FIRST so FreeRDP gets real resolution, then credentialed connect
+            // Flush browser buffer (except connect) BEFORE connect triggers FreeRDP
+            // This lets size/audio/video/image reach guacd in the right order
+            for (const msg of browserBuffer) {
+              if (!msg.startsWith('7.connect,')) {
+                guacdClient.write(msg);
+              }
+            }
+            browserBuffer.length = 0;
+
             guacdClient.write(guacInstruction('size', rdpWidth || '1024', rdpHeight || '768', '96'));
             guacdClient.write(guacInstruction('connect', ...argValues));
             handshook = true;
           }
+        } else {
+          // After handshake — pure raw pipe, no parsing needed
+          if (ws.readyState === WebSocket.OPEN) ws.send(payload);
         }
       });
 
-      // Gate browser messages — drop all until handshake complete
+      // Buffer browser messages during handshake; raw pipe after
       ws.on('message', (message) => {
-        if (handshook && guacdClient && !guacdClient.destroyed) {
-          guacdClient.write(message.toString());
+        const raw = message.toString();
+        if (handshook) {
+          if (guacdClient && !guacdClient.destroyed) guacdClient.write(raw);
+        } else {
+          browserBuffer.push(raw);
         }
       });
 
