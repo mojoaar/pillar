@@ -4,9 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-# Ensure you create a dedicated non-privileged user or update to your system user (e.g. root/ubuntu)
-User=nextjs
-Group=nodejs
+User=pillar
+Group=pillar
 
 WorkingDirectory=/opt/pillar
 ExecStart=/usr/bin/node dist/server.js
@@ -16,7 +15,7 @@ Restart=always
 RestartSec=10
 
 # Load environment variable secrets from secure configuration file (chmod 600)
-EnvironmentFile=/opt/pillar/secrets.env
+EnvironmentFile=/opt/pillar/.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
 
