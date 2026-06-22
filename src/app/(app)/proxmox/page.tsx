@@ -397,7 +397,8 @@ setSaveError(null);
                     </div>
                   )}
 
-                  {/* Connection Import Action */}
+                  {/* Connection Import Action — hidden for Windows VMs */}
+                  {(!vm.os || !vm.os.toLowerCase().includes('windows')) && (
                   <div style={{
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--border)',
@@ -412,6 +413,7 @@ setSaveError(null);
                       <span style={{ fontSize: '0.8rem' }}>Add to Connections</span>
                     </button>
                   </div>
+                  )}
                 </div>
               );
             })}

@@ -73,10 +73,15 @@ export async function GET(request: NextRequest) {
     // Merge status data into node objects
     const enrichedNodes = nodes.map((n: any) => {
       const stats = nodeStatuses.find((s: any) => s.node === n.node) || {};
+      let pveOs: string | null = null;
+      if (stats.pveversion) {
+        const verMatch = stats.pveversion.match(/pve-manager\/(\d+\.\d+\.\d+)/);
+        pveOs = verMatch ? `Proxmox VE ${verMatch[1]}` : `Proxmox VE ${stats.pveversion}`;
+      }
       return {
         ...n,
         ip: nodeIps.get(n.node) || null,
-        os: stats.pveversion ? `Proxmox VE ${stats.pveversion}` : null,
+        os: pveOs,
         cpu: stats.cpu ?? n.cpu,
         maxcpu: stats.cpuinfo?.cpus ?? n.maxcpu,
         mem: stats.memory?.used ?? n.mem,
