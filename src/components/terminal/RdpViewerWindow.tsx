@@ -12,6 +12,13 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
   const [error, setError] = useState<string | null>(null);
   const clientRef = useRef<any>(null);
 
+  const sendKeyCombo = (keysyms: number[]) => {
+    const client = clientRef.current;
+    if (!client || status !== 'Connected') return;
+    keysyms.forEach((k) => client.sendKeyEvent(1, k));
+    [...keysyms].reverse().forEach((k) => client.sendKeyEvent(0, k));
+  };
+
   useEffect(() => {
     let active = true;
     let client: any = null;
@@ -171,7 +178,65 @@ export default function RdpViewerWindow({ connectionId }: RdpViewerWindowProps) 
           }} />
           <span>Status: <strong>{status}</strong></span>
         </span>
-        {error && <span style={{ color: 'var(--danger)', fontWeight: 600 }}>{error}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {error && <span style={{ color: 'var(--danger)', fontWeight: 600, marginRight: '1rem' }}>{error}</span>}
+          <div style={{ display: 'flex', gap: '0.35rem' }}>
+            <button
+              onClick={() => sendKeyCombo([0xFFE3, 0xFFE9, 0xFFFF])}
+              disabled={status !== 'Connected'}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.7rem',
+                padding: '0.2rem 0.6rem',
+                height: 'auto',
+                minWidth: 'unset',
+                textTransform: 'none',
+                letterSpacing: 'normal',
+                opacity: status === 'Connected' ? 1 : 0.5,
+                cursor: status === 'Connected' ? 'pointer' : 'not-allowed'
+              }}
+              title="Send Ctrl+Alt+Delete (Secure Attention Sequence) to host"
+            >
+              Ctrl+Alt+Del
+            </button>
+            <button
+              onClick={() => sendKeyCombo([0xFFEB])}
+              disabled={status !== 'Connected'}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.7rem',
+                padding: '0.2rem 0.6rem',
+                height: 'auto',
+                minWidth: 'unset',
+                textTransform: 'none',
+                letterSpacing: 'normal',
+                opacity: status === 'Connected' ? 1 : 0.5,
+                cursor: status === 'Connected' ? 'pointer' : 'not-allowed'
+              }}
+              title="Send Windows Logo key to host"
+            >
+              Win
+            </button>
+            <button
+              onClick={() => sendKeyCombo([0xFF1B])}
+              disabled={status !== 'Connected'}
+              className="btn btn-secondary btn-sm"
+              style={{
+                fontSize: '0.7rem',
+                padding: '0.2rem 0.6rem',
+                height: 'auto',
+                minWidth: 'unset',
+                textTransform: 'none',
+                letterSpacing: 'normal',
+                opacity: status === 'Connected' ? 1 : 0.5,
+                cursor: status === 'Connected' ? 'pointer' : 'not-allowed'
+              }}
+              title="Send Escape key to host"
+            >
+              Esc
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Target Canvas Container */}
