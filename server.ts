@@ -787,10 +787,18 @@ app.prepare().then(() => {
     let guacdClient: net.Socket | null = null;
     let isHandshakeComplete = false;
 
-    // Single message handler — queues all messages; flushed after guacdClient ready
+    // Message handler — queues early, processes live after guacdClient ready
     const rawMessageQueue: string[] = [];
+    let processingActive = false;
     ws.on('message', (message) => {
-      rawMessageQueue.push(message.toString());
+      const raw = message.toString();
+      rawMessageQueue.push(raw);
+      if (processingActive) {
+        while (rawMessageQueue.length > 0) {
+          // @ts-ignore - assigned before any message callback fires
+          processBrowserMessage(rawMessageQueue.shift()!);
+        }
+      }
     });
 
     // Handshaking watchdog timeout
@@ -968,11 +976,10 @@ app.prepare().then(() => {
 
     // Flush all browser messages that were queued during async setup
     console.log('[WS-RDP] Flushing queued messages:', rawMessageQueue.length);
-    for (const msg of rawMessageQueue) {
-      processBrowserMessage(msg);
+    while (rawMessageQueue.length > 0) {
+      processBrowserMessage(rawMessageQueue.shift()!);
     }
-    rawMessageQueue.length = 0;
-    rawMessageQueue.length = 0;
+    processingActive = true;
 
       guacdClient.on('error', (err) => {
         console.error('[WS-RDP] Guacamole TCP Socket error:', err.message);
