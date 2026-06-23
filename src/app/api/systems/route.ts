@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         osType: true,
         pollIntervalMin: true,
         userId: true,
+        tags: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
             osType: conn.osType,
             pollIntervalMin: conn.pollIntervalMin,
             isOwner: conn.userId === userId,
+            tags: conn.tags ? conn.tags.split(',') : ([] as string[]),
             ...info,
             status: 'online' as const,
             error: null,
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
             osType: conn.osType,
             pollIntervalMin: conn.pollIntervalMin,
             isOwner: conn.userId === userId,
+            tags: conn.tags ? conn.tags.split(',') : ([] as string[]),
             osName: 'Unknown',
             osVersion: '',
             prettyName: 'Unknown',

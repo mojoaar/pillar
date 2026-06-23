@@ -27,6 +27,7 @@ interface SystemData {
   osType: string | null;
   pollIntervalMin: number;
   isOwner: boolean;
+  tags: string[];
   osName: string;
   osVersion: string;
   prettyName: string;
@@ -71,6 +72,7 @@ export default function SystemsPage() {
 
   const pollIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const mounted = useRef(true);
+  const initialCheckDone = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -98,6 +100,20 @@ export default function SystemsPage() {
   useEffect(() => {
     fetchSystems();
   }, [fetchSystems]);
+
+  // Auto-check updates for all online systems after initial load
+  useEffect(() => {
+    if (systems.length === 0 || initialCheckDone.current) return;
+    initialCheckDone.current = true;
+    const checkOnlineSystems = async () => {
+      for (const sys of systems) {
+        if (sys.status === 'online') {
+          await handleCheckUpdates(sys.id);
+        }
+      }
+    };
+    checkOnlineSystems();
+  }, [systems]);
 
   // Auto-poll: set up intervals per system
   useEffect(() => {
@@ -314,6 +330,9 @@ export default function SystemsPage() {
                   <div className={styles.cardTitle}>
                     <Server size={20} />
                     <span>{sys.name}</span>
+                    {updates && updates.packageCount > 0 && (
+                      <AlertTriangle size={16} className={styles.pendingIcon} />
+                    )}
                   </div>
                   <span className={`${styles.statusDot} ${sys.status === 'online' ? styles.statusOnline : styles.statusError}`} />
                 </div>
@@ -340,6 +359,15 @@ export default function SystemsPage() {
                     <span className={styles.infoLabel}>Host</span>
                     <span className={styles.infoValue}>{sys.host}:{sys.port}</span>
                   </div>
+
+                  {/* Tags */}
+                  {sys.tags && sys.tags.length > 0 && (
+                    <div className={styles.tagsRow}>
+                      {sys.tags.map((tag) => (
+                        <span key={tag} className={styles.tagPill}>#{tag}</span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Update Status */}
                   {updates && (
