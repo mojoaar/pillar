@@ -13,6 +13,7 @@ interface UserModel {
   mfaEnabled: boolean;
   isSuspended: boolean;
   allowedPlugins?: string | null; // comma-separated plugin IDs authorized for this user
+  maxSessions: number;
   createdAt: string;
 }
 
@@ -134,6 +135,22 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
     }
   };
 
+  // Change max session limit
+  const handleChangeMaxSessions = async (user: UserModel, val: number) => {
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxSessions: val }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Operation failed.');
+      setUsers(users.map((u) => (u.id === user.id ? { ...u, maxSessions: data.data.maxSessions } : u)));
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   // Administrative MFA Override (reset TOTP)
   const handleResetMfa = async (user: UserModel) => {
     if (!confirm(`⚠️ WARNING: You are initiating an administrative MFA Override on ${user.username}. This will completely disable their authenticator device and clear their secret key. Proceed?`)) {
@@ -242,6 +259,7 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>Active User</th>
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>Username</th>
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>Role</th>
+                <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>Sessions</th>
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>MFA</th>
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600 }}>Status</th>
                 <th style={{ padding: '1rem 0.5rem', fontWeight: 600, textAlign: 'right' }}>Actions</th>
@@ -289,6 +307,22 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
                           <option value="ADMIN">ADMIN</option>
                         </select>
                       )}
+                    </td>
+
+                    {/* Sessions limit */}
+                    <td style={{ padding: '1rem 0.5rem' }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={u.maxSessions ?? 10}
+                        onChange={(e) => {
+                          const v = Math.max(1, Math.min(100, Number(e.target.value) || 10));
+                          handleChangeMaxSessions(u, v);
+                        }}
+                        className="input-field"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', width: '55px', textAlign: 'center' }}
+                      />
                     </td>
 
                     {/* MFA badge status */}

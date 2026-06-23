@@ -218,6 +218,14 @@ app.prepare().then(() => {
         throw new Error('UNAUTHORIZED: Session token is invalid or expired.');
       }
 
+      const userRecord = await db.user.findUnique({
+        where: { id: decodedUser.id as string },
+        select: { tokenVersion: true, maxSessions: true },
+      });
+      if (!userRecord || ((decodedUser as any).tokenVersion !== undefined && (decodedUser as any).tokenVersion < userRecord.tokenVersion)) {
+        throw new Error('UNAUTHORIZED: Session token is stale. Please re-login.');
+      }
+
       if (!connectionId) {
         throw new Error('BAD_REQUEST: Missing required parameter connectionId.');
       }
@@ -459,7 +467,12 @@ app.prepare().then(() => {
 
         persistentSshSessions.set(sessionKey, sessionEntry);
 
-        // Map active sessions
+        const userSessionCount = sessionRegistry.getAll().filter((s: any) => s.userId === (decodedUser.id as string)).length;
+        if (userSessionCount >= (userRecord.maxSessions || 10)) {
+          ws.close(4001, `Session limit of ${userRecord.maxSessions} reached`);
+          return;
+        }
+
         sessionRegistry.set(sessionId, {
           ws,
           userId: decodedUser.id as string,
@@ -620,6 +633,14 @@ app.prepare().then(() => {
         throw new Error('UNAUTHORIZED: Token invalid.');
       }
 
+      const userRecordVnc = await db.user.findUnique({
+        where: { id: decodedUser.id as string },
+        select: { tokenVersion: true, maxSessions: true },
+      });
+      if (!userRecordVnc || ((decodedUser as any).tokenVersion !== undefined && (decodedUser as any).tokenVersion < userRecordVnc.tokenVersion)) {
+        throw new Error('UNAUTHORIZED: Session token is stale. Please re-login.');
+      }
+
       if (!connectionId) {
         throw new Error('BAD_REQUEST: Missing connectionId.');
       }
@@ -642,6 +663,12 @@ app.prepare().then(() => {
       }
 
       console.log(`[WS-VNC] Auth Succeeded. User: ${decodedUser.email} -> VNC: ${connection.host}:${connection.port}`);
+
+      const userVncCount = sessionRegistry.getAll().filter((s: any) => s.userId === (decodedUser.id as string)).length;
+      if (userVncCount >= (userRecordVnc.maxSessions || 10)) {
+        ws.close(4001, `Session limit of ${userRecordVnc.maxSessions} reached`);
+        return;
+      }
 
       // Log session
       sessionRegistry.set(sessionId, {

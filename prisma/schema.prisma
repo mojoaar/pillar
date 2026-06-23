@@ -21,6 +21,8 @@ model User {
   mfaBackupCodes String?          // encrypted AES-256-GCM comma-separated codes
   isSuspended  Boolean            @default(false)
   allowedPlugins String?           // comma-separated plugin IDs authorized for USER role (Phase 11)
+  tokenVersion Int                @default(0)
+  maxSessions  Int                @default(10)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   

@@ -30,6 +30,7 @@ export default async function AdminUsersPage() {
     mfaEnabled: u.mfaEnabled,
     isSuspended: u.isSuspended,
     allowedPlugins: u.allowedPlugins,
+    maxSessions: u.maxSessions,
     createdAt: u.createdAt.toISOString(),
   }));
 

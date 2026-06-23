@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         isSuspended: true,
         avatarUrl: true,
         allowedPlugins: true,
+        maxSessions: true,
         createdAt: true,
       },
     });

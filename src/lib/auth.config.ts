@@ -9,6 +9,7 @@ export const authConfig: NextAuthConfig = {
         token.role = (user as any).role || 'USER';
         token.username = (user as any).username;
         token.mfaEnabled = (user as any).mfaEnabled || false;
+        token.tokenVersion = (user as any).tokenVersion || 0;
       }
       
       if (trigger === 'update' && session) {

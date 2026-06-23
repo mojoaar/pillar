@@ -93,6 +93,7 @@ export async function PATCH(request: NextRequest) {
       // Hash new password using bcryptjs
       const salt = await bcrypt.genSalt(12);
       updateData.passwordHash = await bcrypt.hash(newPassword, salt);
+      updateData.tokenVersion = { increment: 1 };
     }
 
     // 4. Perform SQLite updates

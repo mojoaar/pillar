@@ -171,6 +171,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           username: user.username,
           role: user.role,
           mfaEnabled: user.mfaEnabled,
+          tokenVersion: user.tokenVersion,
         };
       },
     }),
