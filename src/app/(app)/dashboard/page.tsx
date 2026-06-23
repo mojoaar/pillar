@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Terminal, Plus, ArrowRight, ShieldCheck, HeartPulse, History } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
 import ActiveSessionsWidget from '@/components/layout/ActiveSessionsWidget';
+import PluginStats from '@/components/dashboard/PluginStats';
 
 export default async function DashboardPage() {
   // Resolve user session on the server (Security mandate #3)
@@ -108,6 +109,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Plugin Stats — Proxmox VE and Systems */}
+      <PluginStats />
 
       {/* Main Dashboard Workspace */}
       <div className="grid-2">
