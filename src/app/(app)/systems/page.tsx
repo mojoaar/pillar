@@ -15,6 +15,7 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react';
+import { formatDateTime } from '@/lib/datetime';
 import styles from './page.module.css';
 
 interface SystemData {
@@ -55,6 +56,18 @@ export default function SystemsPage() {
   const [updateResults, setUpdateResults] = useState<Record<string, UpdateResult>>({});
   const [rebooting, setRebooting] = useState<RebootingState>(null);
   const [actionOutput, setActionOutput] = useState<string | null>(null);
+  const [hour12, setHour12] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pillar-clock') === '12h';
+    }
+    return false;
+  });
+  const [dateFormat, setDateFormat] = useState<'EU' | 'US' | 'ISO'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('pillar-date') as 'EU' | 'US' | 'ISO') || 'EU';
+    }
+    return 'EU';
+  });
 
   const pollIntervals = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const mounted = useRef(true);
@@ -363,7 +376,7 @@ export default function SystemsPage() {
 
                   {/* Last Checked */}
                   <div className={styles.lastChecked}>
-                    Last checked: {new Date(sys.lastChecked).toLocaleTimeString()}
+                    Last checked: {formatDateTime(sys.lastChecked, { hour12, dateFormat })}
                   </div>
                 </div>
 
