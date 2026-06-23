@@ -8,7 +8,7 @@ User=pillar
 Group=pillar
 
 WorkingDirectory=/opt/pillar
-ExecStart=/usr/bin/node dist/server.js
+ExecStart=/usr/bin/node --no-deprecation dist/server.js
 
 # Auto-Restart service on crash or unexpected terminations
 Restart=always

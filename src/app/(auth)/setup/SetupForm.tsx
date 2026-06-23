@@ -89,7 +89,7 @@ export default function SetupForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate autoComplete="off">
           <div className="form-group">
             <label htmlFor="name">Display Name</label>
             <input
