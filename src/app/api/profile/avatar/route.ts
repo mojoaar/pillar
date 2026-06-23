@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { writeFile, unlink } from 'fs/promises';
+import { writeFile, unlink, mkdir } from 'fs/promises';
 import path from 'path';
 import { writeAudit } from '@/lib/audit';
 
@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
     // Gotcha #28: Use process.cwd() instead of __dirname inside Turbopack
     const uploadDirectory = path.join(process.cwd(), 'public', 'uploads', 'avatars');
     const filepath = path.join(uploadDirectory, filename);
+
+    // Ensure the upload directory exists before writing the file
+    await mkdir(uploadDirectory, { recursive: true });
 
     // Read file buffer and save to local storage
     const bytes = await file.arrayBuffer();
