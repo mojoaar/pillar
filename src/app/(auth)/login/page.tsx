@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import LoginForm from './LoginForm';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LoginPage() {
   // If the database has 0 users, auto-redirect visitors to the interactive setup page
   const userCount = await db.user.count();
