@@ -215,6 +215,18 @@ const apiSpecs: APIEndpoint[] = [
     }
   },
   {
+    id: 'avatar-remove',
+    group: 'Profiles',
+    method: 'DELETE',
+    path: '/api/profile/avatar',
+    desc: 'Permanently delete the current user profile avatar image from local storage and clear the database reference.',
+    auth: 'USER',
+    resBody: {
+      data: { avatarUrl: null },
+      ok: true
+    }
+  },
+  {
     id: 'mfa-generate',
     group: 'Profiles',
     method: 'POST',

@@ -257,7 +257,7 @@ exit  # if still in pillar user's shell
 
 cat > /etc/systemd/system/pillar.service << 'UNITEOF'
 [Unit]
-Description=Pillar Homelab Remote Access Gateway
+Description=Pillar Remote Access Gateway
 Documentation=https://github.com/mojoaar/pillar
 After=network.target
 
