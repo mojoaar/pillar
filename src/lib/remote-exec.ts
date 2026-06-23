@@ -135,7 +135,7 @@ function parseOsRelease(raw: string): Record<string, string> {
   for (const line of raw.split('\n')) {
     const eq = line.indexOf('=');
     if (eq === -1) continue;
-    const key = line.slice(0, eq).trim();
+    const key = line.slice(0, eq).trim().toLowerCase();
     let val = line.slice(eq + 1).trim();
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
