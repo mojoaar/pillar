@@ -21,7 +21,7 @@ export default async function AdminUsersPage() {
   });
 
   // 3. Serialize models cleanly for client-side passing
-  const serializedUsers = users.map((u) => ({
+  const serializedUsers = users.map((u: any) => ({
     id: u.id,
     email: u.email,
     name: u.name,

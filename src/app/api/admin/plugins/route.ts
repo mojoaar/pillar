@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Load enabled statuses from DB
     const dbPlugins = await db.plugin.findMany();
-    const statusMap = new Map(dbPlugins.map((p) => [p.id, p.enabled]));
+    const statusMap = new Map(dbPlugins.map((p: any) => [p.id, p.enabled]));
 
     const responseData = await Promise.all(
       AVAILABLE_PLUGINS.map(async (plugin) => {

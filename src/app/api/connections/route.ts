@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Safely serialize connections, stripping any sensitive encrypted fields before returning to client (BOLA precaution)
-    const serialized = connections.map((c) => ({
+    const serialized = connections.map((c: any) => ({
       id: c.id,
       userId: c.userId,
       name: c.name,

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Detect OS for each system in parallel (with individual error handling)
     const results = await Promise.allSettled(
-      connections.map(async (conn) => {
+      connections.map(async (conn: any) => {
         try {
           const info = await detectOS(conn.id);
           return {
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    const systems = results.map((r) =>
+    const systems = results.map((r: any) =>
       r.status === 'fulfilled' ? r.value : null
     ).filter(Boolean);
 

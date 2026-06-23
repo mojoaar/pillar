@@ -35,7 +35,7 @@ export default async function ConnectionsCatalogPage() {
     orderBy: { name: 'asc' }
   });
 
-  const serializedUsers = users.map((u) => ({
+  const serializedUsers = users.map((u: any) => ({
     id: u.id,
     name: u.name || u.email,
     email: u.email
@@ -48,7 +48,7 @@ export default async function ConnectionsCatalogPage() {
   });
 
   // Normalize models for catalog passing
-  const serializedConnections = connections.map((c) => ({
+  const serializedConnections = connections.map((c: any) => ({
     id: c.id,
     name: c.name,
     host: c.host,

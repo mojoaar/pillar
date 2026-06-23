@@ -16,7 +16,7 @@ export async function hasPluginAccess(userId: string, role: string, pluginId: st
 
   if (!user || !user.allowedPlugins) return false;
 
-  const allowed = user.allowedPlugins.split(',').map((p) => p.trim());
+  const allowed = user.allowedPlugins.split(',').map((p: any) => p.trim());
   return allowed.includes(pluginId);
 }
 

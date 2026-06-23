@@ -31,7 +31,7 @@ export default async function ConnectionTerminalPage({ params }: TerminalPagePro
   }
 
   const isOwner = connection.userId === session.user!.id;
-  const isShared = connection.sharedWith.some((s) => s.userId === session.user!.id);
+  const isShared = connection.sharedWith.some((s: any) => s.userId === session.user!.id);
 
   if (!isOwner && !isShared) {
     redirect('/dashboard?error=forbidden');

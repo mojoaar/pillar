@@ -36,7 +36,7 @@ export default async function AdminAuditPage() {
   ]);
 
   // 3. Serialize models cleanly for client-side passing
-  const serializedLogs = logs.map((log) => ({
+  const serializedLogs = logs.map((log: any) => ({
     id: log.id,
     userId: log.userId,
     event: log.event,

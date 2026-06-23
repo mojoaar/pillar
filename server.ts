@@ -233,7 +233,7 @@ app.prepare().then(() => {
 
       // Enforce BOLA checks
       const isOwner = connection.userId === decodedUser.id;
-      const isShared = connection.sharedWith.some((share) => share.userId === decodedUser.id);
+      const isShared = connection.sharedWith.some((share: { userId: string }) => share.userId === decodedUser.id);
 
       if (!isOwner && !isShared) {
         throw new Error('FORBIDDEN: You do not have permissions to load this connection profile.');
@@ -635,7 +635,7 @@ app.prepare().then(() => {
 
       // Enforce BOLA checks
       const isOwner = connection.userId === decodedUser.id;
-      const isShared = connection.sharedWith.some((share) => share.userId === decodedUser.id);
+      const isShared = connection.sharedWith.some((share: { userId: string }) => share.userId === decodedUser.id);
 
       if (!isOwner && !isShared) {
         throw new Error('FORBIDDEN: Scope violation.');

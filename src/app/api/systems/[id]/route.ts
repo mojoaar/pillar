@@ -23,7 +23,7 @@ async function verifyAccess(connectionId: string, userId: string): Promise<{ all
   }
 
   const isOwner = connection.userId === userId;
-  const isShared = connection.sharedWith.some((s) => s.userId === userId);
+  const isShared = connection.sharedWith.some((s: any) => s.userId === userId);
   if (!isOwner && !isShared) {
     return { allowed: false, error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   }

@@ -138,7 +138,7 @@ export default async function DashboardPage() {
                 </Link>
               </div>
             ) : (
-              connections.map((conn) => (
+              connections.map((conn: any) => (
                 <div 
                   key={conn.id} 
                   className="flex-between"
@@ -193,7 +193,7 @@ export default async function DashboardPage() {
                 <p>No recent activity logs.</p>
               </div>
             ) : (
-              recentLogs.map((log) => (
+              recentLogs.map((log: any) => (
                 <div 
                   key={log.id} 
                   style={{
