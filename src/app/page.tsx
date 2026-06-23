@@ -1,6 +1,11 @@
 import Link from 'next/link';
+import { db } from '@/lib/db';
 
-export default function EntryPage() {
+export const dynamic = 'force-dynamic';
+
+export default async function EntryPage() {
+  const userCount = await db.user.count();
+
   return (
     <main style={{
       display: 'flex',
@@ -23,9 +28,11 @@ export default function EntryPage() {
           <Link href="/login" className="btn btn-primary">
             Sign In
           </Link>
-          <Link href="/setup" className="btn btn-secondary">
-            Setup Wizard
-          </Link>
+          {userCount === 0 && (
+            <Link href="/setup" className="btn btn-secondary">
+              Setup Wizard
+            </Link>
+          )}
         </div>
       </div>
     </main>
