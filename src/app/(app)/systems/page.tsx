@@ -1,8 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import {
   Server,
   RefreshCw,
@@ -46,9 +44,6 @@ interface UpdateResult {
 type RebootingState = { id: string; since: number } | null;
 
 export default function SystemsPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const router = useRouter();
-
   const [systems, setSystems] = useState<SystemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +82,8 @@ export default function SystemsPage() {
   }, []);
 
   useEffect(() => {
-    if (sessionStatus === 'authenticated') {
-      fetchSystems();
-    }
-  }, [sessionStatus, fetchSystems]);
+    fetchSystems();
+  }, [fetchSystems]);
 
   // Auto-poll: set up intervals per system
   useEffect(() => {
@@ -195,20 +188,6 @@ export default function SystemsPage() {
       setRebootingId(null);
     }
   };
-
-  if (sessionStatus === 'loading') {
-    return (
-      <div className={styles.center}>
-        <Loader2 size={32} className={styles.spin} />
-        <span>Loading session...</span>
-      </div>
-    );
-  }
-
-  if (sessionStatus === 'unauthenticated') {
-    router.push('/login');
-    return null;
-  }
 
   if (loading) {
     return (
