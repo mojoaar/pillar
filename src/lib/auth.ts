@@ -4,11 +4,12 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from './db';
 import bcrypt from 'bcryptjs';
 import { decrypt, encrypt } from './crypto';
-import { authenticator } from 'otplib';
+import { NobleCryptoPlugin, ScureBase32Plugin, verifySync } from 'otplib';
 import { writeAudit } from './audit';
 
-// Set TOTP drift tolerance to ±1 time step (30s) for clock skew
-authenticator.options = { window: 1 };
+// Shared crypto and base32 plugins for TOTP operations
+const totpCrypto = new NobleCryptoPlugin();
+const totpBase32 = new ScureBase32Plugin();
 
 // In-memory credential rate limiter: 5 attempts per email per 15 minutes
 const credentialAttempts = new Map<string, number[]>();
@@ -154,7 +155,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             }
 
             // Validate TOTP code using otplib
-            const isValidTotp = authenticator.check(totpCode, decryptedSecret);
+            const result = verifySync({ token: totpCode, secret: decryptedSecret, epochTolerance: [0, 1], crypto: totpCrypto, base32: totpBase32 });
+            const isValidTotp = result.valid;
             if (!isValidTotp) {
               await writeAudit(user.id, 'Login Failed', null, { email, reason: 'Incorrect MFA code' });
               throw new Error('Invalid credentials');

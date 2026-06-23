@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { encrypt } from '@/lib/crypto';
-import { authenticator } from 'otplib';
+import { NobleCryptoPlugin, ScureBase32Plugin, generateSecret, generateURI } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
@@ -28,11 +28,13 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Generate secure random base32 secret
-    const secret = authenticator.generateSecret();
+    const cryptoPlugin = new NobleCryptoPlugin();
+    const base32Plugin = new ScureBase32Plugin();
+    const secret = generateSecret({ crypto: cryptoPlugin, base32: base32Plugin } as any);
 
     // 2. Generate standard otpauth parameters URI
     const issuer = 'Pillar Gateway';
-    const otpauth = authenticator.keyuri(session.user.email || 'user', issuer, secret);
+    const otpauth = generateURI({ secret, label: session.user.email || 'user', issuer });
 
     // 3. Render parameters URI to QR Code data URL using qrcode package
     const qrCodeDataUrl = await QRCode.toDataURL(otpauth);

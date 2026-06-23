@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { decrypt } from '@/lib/crypto';
-import { authenticator } from 'otplib';
+import { NobleCryptoPlugin, ScureBase32Plugin, verifySync } from 'otplib';
 import { writeAudit } from '@/lib/audit';
 
 /**
@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verify submitted code using otplib
-    const isValid = authenticator.check(code, decryptedSecret);
+    const result = verifySync({ token: code, secret: decryptedSecret, epochTolerance: [0, 1], crypto: new NobleCryptoPlugin(), base32: new ScureBase32Plugin() } as any);
+    const isValid = result.valid;
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid verification code. Try again.' }, { status: 400 });
     }
