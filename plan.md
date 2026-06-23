@@ -115,6 +115,16 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] User dashboard active sessions widget (table + terminate, polls every 5s)
 - [x] Documentation updated in admin-guide.md
 
+### Phase 15: Proxmox VE CVE Intelligence
+- [ ] Cross-reference pending Proxmox package updates against known CVEs
+- [ ] Display severity badges (CRITICAL/HIGH/MEDIUM/LOW) alongside pending updates on `/systems`
+- [ ] Link to CVE details and mitigation guidance
+
+### Phase 16: Proxmox Cluster Topology Graph
+- [ ] Interactive relationship graph: cluster → nodes → VMs/LXCs on `/proxmox`
+- [ ] Visual connections showing node membership and guest placement
+- [ ] Color-coded health status across the topology
+
 ---
 
 ## Security Remediation Backlog
@@ -138,10 +148,10 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 #### 🟡 Tier 3 — MEDIUM Severity
 - [x] Enforce hex-only ENCRYPTION_KEY; remove SHA-256 derivation fallback
 - [x] Add HMAC-SHA256 with server pepper for API key hashing
-- [ ] Add tokenVersion to User model; increment on password change; check in JWT
+- [x] Add tokenVersion to User model; increment on password change; check in JWT
 - [x] Increase API key entropy to 256 bits
 - [x] Add app.set('trust proxy', 1)
-- [ ] Add per-user concurrent session cap
+- [x] Add per-user concurrent session cap
 - [x] Return generic errors in Proxmox API; log real errors server-side
 - [x] Validate NEXTAUTH_SECRET length >= 32 at startup
 - [x] Fix vmid=0 falsy check in Proxmox POST
