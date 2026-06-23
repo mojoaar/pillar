@@ -89,6 +89,16 @@ This project utilizes Next.js **CSS Modules** (`*.module.css`) for UI scoping an
 - DO NOT replace the `parse()` call on the catch-all middleware line — it will break Next.js routing.
 - The deprecation warning for this single remaining usage is suppressed via import comment.
 
+### Gotcha #prisma-v7: Prisma v7 upgrade breaking changes
+- **Driver adapter required**: Prisma v7 removed the built-in SQLite driver. Must install and use `@prisma/adapter-better-sqlite3` and pass it to `new PrismaClient({ adapter })`.
+- **Generator renamed**: `prisma-client-js` → `prisma-client` with required `output` path (e.g., `output = "../src/lib/generated/prisma"`).
+- **`url` removed from schema**: The datasource `url` is no longer in `schema.prisma`. Must configure via `prisma.config.ts` with `import 'dotenv/config'` and `env('DATABASE_URL')`.
+- **`@prisma/client` shim trap**: The `@prisma/client` npm package is a shim that does `require('.prisma/client/default')`. With a custom `output` path, this fails at runtime. Always import from the generated path directly: `import { PrismaClient } from './generated/prisma/client'`.
+- **`?connection_limit=1` BREAKS v7 adapter**: Prisma v6 used `connection_limit=1` in the DATABASE_URL query string. The v7 `PrismaBetterSqlite3` driver adapter interprets query strings as part of the filename, causing "table does not exist" errors. Must strip query params: `process.env.DATABASE_URL!.replace(/\?.*$/, '')`.
+- **`import.meta.url` in generated CJS output**: Prisma v7 generates ESM `client.ts` using `import.meta.url`. When `tsc` compiles to CJS, `import.meta.url` is left verbatim. Node.js v24+ detects this and switches the module to ESM scope, breaking `exports`. Fix: post-build patch script (`scripts/patch-prisma-cjs.mjs`) replaces `import.meta.url` with `require("url").pathToFileURL(__filename).href`.
+- **Next.js SSR env inlining**: Turbopack inlines `process.env` values at build time into SSR chunks. Use `env.DATABASE_URL` in `next.config.ts` to ensure it reaches SSR bundles. The `db.ts` adapter uses lazy Proxy init so the URL is resolved at first query, not module load time.
+- **`dotenv/config` required**: `import 'dotenv/config'` at the top of `db.ts` ensures `.env` is loaded before the adapter is created, covering both the Express server and Next.js SSR paths.
+
 ---
 
 ## 📖 Docs Sync Rule

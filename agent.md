@@ -2,7 +2,7 @@
 
 ## Runtime Environment
 - **Node.js**: v26.3.0. Avoid outdated packages or packages deprecated in modern Node.js runtimes.
-- **Database**: SQLite (managed by Prisma ORM). SQLite connection string MUST have `connection_limit=1` in development/production when using WAL mode.
+- **Database**: SQLite (managed by Prisma ORM v7 with `@prisma/adapter-better-sqlite3`). No `connection_limit` query param needed — the adapter handles pooling internally.
 
 ---
 
@@ -64,11 +64,21 @@ All REST API routes must match these JSON models:
 - **Error**: `{ error: "Error details" }`
 
 ### 3. Database Connection Pooling (SQLite)
-- Dev hot module reloading (HMR) re-creates database connections on every module reload. Cache your Prisma client singleton on `globalThis` to avoid SQLite locking:
+- Prisma v7 requires a driver adapter. Use `@prisma/adapter-better-sqlite3` and pass it to `new PrismaClient({ adapter })`.
+- Cache your Prisma client on `globalThis` to avoid SQLite locking during HMR in development. Production uses lazy Proxy init:
   ```typescript
-  const globalForDb = globalThis as unknown as { prisma: PrismaClient | undefined };
-  export const db = globalForDb.prisma ?? new PrismaClient();
-  if (process.env.NODE_ENV !== "production") globalForDb.prisma = db;
+  import 'dotenv/config';
+  import { PrismaClient } from './generated/prisma/client';
+  let _db: PrismaClient | undefined;
+  export const db = new Proxy({} as PrismaClient, {
+    get(_, prop) {
+      const client = _db ?? (_db = (() => {
+        const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+        return new PrismaClient({ adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL!.replace(/\?.*$/, '') }) });
+      })());
+      return typeof client[prop] === 'function' ? client[prop].bind(client) : client[prop];
+    },
+  });
   ```
 
 ### 4. Direct Form Navigation

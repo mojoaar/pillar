@@ -18,7 +18,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 ### Phase 1: Project Setup & DB Schema
 - [x] Initialize Next.js 15+ standalone build config with TypeScript
 - [x] Configure custom Express server entry (`server.ts`) with `ws` upgrade handling
-- [x] Prisma SQLite configuration with `connection_limit=1` for WAL mode safety
+- [x] Prisma SQLite configuration with WAL mode (v6: `connection_limit=1`; v7: driver adapter, no query params)
 - [x] Define database models:
   - `User` (id, email, name, username, role, passwordHash, avatarUrl, mfaSecret [encrypted], mfaEnabled, mfaEnforced, createdAt, updatedAt)
    - `Connection` (id, userId, name, host, domain, port, protocol, tags, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, allowRemoteExec, osType, pollIntervalMin, createdAt, updatedAt)

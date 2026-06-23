@@ -126,7 +126,7 @@ chmod 440 /etc/sudoers.d/pillar
 
 ### Option A: Native Node.js (recommended for small footprint)
 
-Pillar runs natively on Node.js with zero containers. Install Node.js 22 LTS and compile toolchains:
+Pillar runs natively on Node.js with zero containers. Install Node.js 22 LTS: (or newer) and compile toolchains:
 
 ```bash
 # Install base tools and C++ compiler (required for bcryptjs and ssh2 native bindings)
@@ -378,6 +378,7 @@ sudo -u pillar -i
 cd /opt/pillar
 git pull
 npm ci
+rm -rf .next dist  # Clean build cache to prevent stale SSR chunks
 npm run build
 npm run db:push
 exit

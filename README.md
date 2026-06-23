@@ -32,7 +32,7 @@ Pillar is a highly secure, beautiful, self-hosted web-based remote-access gatewa
 - **Styling**: Next.js CSS Modules + CSS Custom Properties (Zero Tailwind CSS)
 - **Backend Bridge**: Custom Express.js server integrating a WebSocket upgrade and a TCP stream bridge
 - **Engines**: `ssh2` (SSH terminal streaming) and raw TCP sockets (VNC desktop streaming)
-- **Database**: SQLite managed via Prisma ORM (running in `connection_limit=1` WAL mode)
+- **Database**: SQLite managed via Prisma v7 ORM (driver adapter, no connection pool params needed)
 
 ---
 
@@ -109,6 +109,9 @@ Pillar is made possible by the incredible work of these open-source libraries, m
 - **Real-Time Canvas Re-Theming**: Live computed-styles syncing on active terminals upon visual scheme toggles.
 - **Persistent Resumable Sockets**: SSH session registry with 5-minute watchdog timers and self-healing reconnect-on-any-key.
 - **Deployment & Scaling**: Multi-stage non-privileged `Dockerfile`, compose volumes, bare-metal systemd templates.
+- **Remote Systems Management Plugin**: Auto-detect OS/uptime across homelab, check and install pending updates, orchestrate reboots with post-reboot verification — all from a central `/systems` dashboard.
+- **Prisma v7 Upgrade**: Migrated from Prisma v6 to v7 with `@prisma/adapter-better-sqlite3`, lazy Proxy DB init, ESM→CJS patch script, and SSR-safe env inlining.
+- **User Dashboard Active Sessions Widget**: Real-time session table with self-service termination, polling every 5 seconds.&#8203;:citation[1]
 
 ---
 
