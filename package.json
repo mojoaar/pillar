@@ -5,7 +5,7 @@
   "license": "AGPL-3.0",
   "scripts": {
     "dev": "NODE_OPTIONS='--no-deprecation' tsx server.ts",
-    "build": "prisma generate && tsc --project tsconfig.server.json && next build",
+    "build": "prisma generate && tsc --project tsconfig.server.json && node scripts/patch-prisma-cjs.mjs && next build",
     "start": "NODE_ENV=production node dist/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
