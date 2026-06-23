@@ -38,6 +38,7 @@ export default function ProxmoxDashboard() {
   const [vms, setVms] = useState<ProxmoxResource[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [connections, setConnections] = useState<{ name: string; host: string }[]>([]);
 
   // Overlay Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,6 +73,7 @@ const [saveLoading, setSaveLoading] = useState(false);
       if (data.enabled && data.connected && data.data) {
         setNodes(data.data.nodes || []);
         setVms((data.data.resources || []).filter((r: any) => r.type === 'qemu' || r.type === 'lxc'));
+        fetchConnections();
       } else if (data.enabled && !data.connected) {
         setError(data.message || 'Could not establish connection to the remote Proxmox VE hypervisor.');
       }
@@ -84,7 +86,29 @@ const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
+    fetchConnections();
   }, []);
+
+  const fetchConnections = async () => {
+    try {
+      const res = await fetch('/api/connections');
+      const data = await res.json();
+      if (res.ok && data.data) {
+        setConnections(data.data.map((c: any) => ({ name: c.name, host: c.host })));
+      }
+    } catch {
+      setConnections([]);
+    }
+  };
+
+  const isAlreadyConnected = (name: string, host: string) => {
+    return connections.some(
+      (c) =>
+        c.name === name ||
+        (name.length >= 3 && c.name.includes(name)) ||
+        (host && c.host === host)
+    );
+  };
 
   const handleOpenImportModal = (vm: ProxmoxResource) => {
     setName(vm.name);
@@ -157,6 +181,7 @@ setSaveError(null);
       if (!res.ok) throw new Error(data.error || 'Failed to save connection.');
 
       setSaveSuccess(true);
+      fetchConnections();
       setTimeout(() => {
         setIsModalOpen(false);
         setSaveSuccess(false);
@@ -310,6 +335,7 @@ setSaveError(null);
                   )}
 
                   {/* Connection Import Action for Host */}
+                  {!isAlreadyConnected(node.node, node.ip || '') && (
                   <div style={{
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--border)',
@@ -318,7 +344,7 @@ setSaveError(null);
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={(e) => {
-                        e.stopPropagation(); // Prevent toggling selection filter
+                        e.stopPropagation();
                         handleOpenNodeImportModal(node);
                       }}
                       style={{ width: '100%', justifyContent: 'center', gap: '0.4rem', padding: '0.35rem 0.5rem' }}
@@ -327,6 +353,7 @@ setSaveError(null);
                       <span style={{ fontSize: '0.8rem' }}>Add to Connections</span>
                     </button>
                   </div>
+                  )}
                 </div>
               );
             })}
@@ -401,8 +428,8 @@ setSaveError(null);
                     </div>
                   )}
 
-                  {/* Connection Import Action — hidden for Windows VMs */}
-                  {(!vm.os || !vm.os.toLowerCase().includes('windows')) && (
+                  {/* Connection Import Action — hidden for Windows VMs or already connected */}
+                  {(!vm.os || !vm.os.toLowerCase().includes('windows')) && !isAlreadyConnected(vm.name, (vm as any).network || '') && (
                   <div style={{
                     paddingTop: '0.75rem',
                     borderTop: '1px solid var(--border)',

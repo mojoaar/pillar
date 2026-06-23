@@ -141,21 +141,20 @@ export default function Sidebar({ user }: SidebarProps) {
           <span className={styles.navText}>Settings</span>
         </Link>
 
-        <Link 
-          href="/docs" 
-          className={`${styles.navItem} ${isActive('/docs') ? styles.navItemActive : ''}`}
-        >
-          <BookOpen size={20} />
-          <span className={styles.navText}>Documentation</span>
-        </Link>
+        {/* Proxmox VE and Systems section */}
+        <div className={styles.separator} />
 
-        <Link 
-          href="/apidocs" 
-          className={`${styles.navItem} ${isActive('/apidocs') ? styles.navItemActive : ''}`}
-        >
-          <Code size={20} />
-          <span className={styles.navText}>API Reference</span>
-        </Link>
+        <span style={{ 
+          fontSize: '0.75rem', 
+          fontWeight: 700, 
+          color: 'var(--text-muted)', 
+          textTransform: 'uppercase', 
+          letterSpacing: '0.05em', 
+          paddingLeft: '1rem',
+          marginBottom: '0.5rem'
+        }} className={styles.navText}>
+          Proxmox VE and Systems
+        </span>
 
         {user.isPveEnabled && (user.role === 'ADMIN' || user.allowedPlugins?.includes('proxmox-ve')) && (
           <Link 
@@ -176,6 +175,22 @@ export default function Sidebar({ user }: SidebarProps) {
             <span className={styles.navText}>Systems</span>
           </Link>
         )}
+
+        <Link 
+          href="/docs" 
+          className={`${styles.navItem} ${isActive('/docs') ? styles.navItemActive : ''}`}
+        >
+          <BookOpen size={20} />
+          <span className={styles.navText}>Documentation</span>
+        </Link>
+
+        <Link 
+          href="/apidocs" 
+          className={`${styles.navItem} ${isActive('/apidocs') ? styles.navItemActive : ''}`}
+        >
+          <Code size={20} />
+          <span className={styles.navText}>API Reference</span>
+        </Link>
 
         {/* Dedicated Admin Console (ADMIN-role only) */}
         {user.role === 'ADMIN' && (
