@@ -126,4 +126,51 @@ The Proxmox plugin automatically adjusts to match your environment's topology:
   1. Go to **Admin Panel &rarr; User Accounts**.
   2. Click the **🔌 Plugins** button next to their name.
   3. Check the **Proxmox VE Plugin** box and click **Save Permissions**.
-  4. The **Proxmox VE** navigation tab will instantly appear in their left sidebar!
+   4. The **Proxmox VE** navigation tab will instantly appear in their left sidebar!
+
+---
+
+## 🖥️ Remote Systems Management Plugin
+
+The Systems plugin gives you a centralized dashboard to monitor remote server operating systems, track uptime, check for pending package updates, and remotely install updates or reboot servers — all via SSH.
+
+### 1. Enable the Systems Plugin
+1. Sign in to Pillar as an **ADMIN**.
+2. Navigate to **Manage Plugins** (`/admin/plugins`).
+3. Click the **Remote Systems** plugin card and toggle **Enable Plugin** to active.
+4. Click **Save Configuration**.
+
+### 2. Enable Remote Exec on Connection Profiles
+For each connection profile you want to manage from the Systems dashboard:
+1. Go to **Connections** (`/connections`) and edit a connection profile.
+2. In the form, find the **Remote System Management** section (only visible when plugin is enabled and protocol is SSH).
+3. Toggle **Allow Remote Exec** to on.
+4. Optionally set an **OS Type Override** if auto-detection is unreliable (Debian/Ubuntu, RHEL/CentOS/Fedora, Arch, Alpine, openSUSE).
+5. Set the **Auto-Poll Interval** (5–1440 minutes) to control how often the Systems dashboard refreshes this server.
+6. Click **Apply Changes** to save.
+
+### 3. Using the Systems Dashboard
+Navigate to **Systems** (`/systems`) to view all your managed servers:
+- **OS & Kernel**: Auto-detected from the remote host via `cat /etc/os-release` and `uname -r`.
+- **Uptime**: Shows how long the remote server has been running.
+- **Check Updates**: Runs the appropriate package manager command (`apt`, `dnf`, `pacman`, `apk`, `zypper`) to list pending updates.
+- **Install Updates**: Confirmation modal → runs the upgrade command with audit logging.
+- **Reboot**: Confirmation modal → sends `sudo reboot`, tracks the server until it comes back online.
+
+### 4. Supported Package Managers
+The Systems plugin auto-detects the remote OS and selects the correct package manager:
+| OS | Package Manager |
+|---|---|
+| Debian / Ubuntu / Mint | `apt` |
+| RHEL / CentOS / Fedora / Alma / Rocky | `dnf` / `yum` |
+| Arch / Manjaro | `pacman` |
+| Alpine | `apk` |
+| openSUSE | `zypper` |
+
+### 5. Granting User Access Scopes
+- By default, only users with the **`ADMIN`** role can access the Systems dashboard.
+- To grant a standard (`USER`-role) account access:
+  1. Go to **Admin Panel → User Accounts**.
+  2. Click the **🔌 Plugins** button next to their name.
+  3. Check the **Remote Systems** box and click **Save Permissions**.
+  4. The **Systems** navigation tab will appear in their left sidebar.

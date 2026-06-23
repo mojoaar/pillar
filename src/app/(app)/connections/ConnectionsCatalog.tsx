@@ -16,6 +16,9 @@ interface ConnectionModel {
   authType: 'PASSWORD' | 'KEY';
   isShared: boolean;
   userId: string;
+  allowRemoteExec?: boolean;
+  osType?: string | null;
+  pollIntervalMin?: number;
 }
 
 interface UserModel {
@@ -28,12 +31,14 @@ interface ConnectionsCatalogProps {
   initialConnections: ConnectionModel[];
   users: UserModel[];
   currentUserId: string;
+  isSystemsEnabled?: boolean;
 }
 
 export default function ConnectionsCatalog({
   initialConnections,
   users,
   currentUserId,
+  isSystemsEnabled,
 }: ConnectionsCatalogProps) {
   const [connections, setConnections] = useState<ConnectionModel[]>(initialConnections);
   
@@ -57,6 +62,9 @@ export default function ConnectionsCatalog({
   const [privateKey, setPrivateKey] = useState('');
   const [passphrase, setPassphrase] = useState('');
   const [ignoreCert, setIgnoreCert] = useState(false);
+  const [allowRemoteExec, setAllowRemoteExec] = useState(false);
+  const [osType, setOsType] = useState('');
+  const [pollIntervalMin, setPollIntervalMin] = useState(60);
 
   // Filtering Connections (Finding #tags-filter)
   const [selectedTag, setSelectedTag] = useState('');
@@ -80,6 +88,9 @@ export default function ConnectionsCatalog({
     setPrivateKey('');
     setPassphrase('');
     setIgnoreCert(false);
+    setAllowRemoteExec(false);
+    setOsType('');
+    setPollIntervalMin(60);
 setEditingEditingConnection(null);
     setError(null);
   };
@@ -103,6 +114,9 @@ setEditingEditingConnection(null);
     setPrivateKey(''); // never leak private key back
     setPassphrase('');
     setIgnoreCert(conn.ignoreCert || false);
+    setAllowRemoteExec(conn.allowRemoteExec || false);
+    setOsType(conn.osType || '');
+    setPollIntervalMin(conn.pollIntervalMin || 60);
 setError(null);
     setShowModal(true);
   };
@@ -139,6 +153,9 @@ setError(null);
         password: authType === 'PASSWORD' || protocol !== 'SSH' ? password : null,
         privateKey: authType === 'KEY' && protocol === 'SSH' ? privateKey : null,
         passphrase: authType === 'KEY' && protocol === 'SSH' ? passphrase : null,
+        allowRemoteExec,
+        osType: osType || null,
+        pollIntervalMin: Number(pollIntervalMin) || 60,
       };
 
       const url = editingConnection 
@@ -645,6 +662,86 @@ setError(null);
                       disabled={loading}
                     />
                   </div>
+                </>
+              )}
+
+              {/* Remote System Management (only shown when Systems plugin is enabled) */}
+              {isSystemsEnabled && protocol === 'SSH' && (
+                <>
+                  <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.5rem 0 1rem 0' }} />
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span>🖥️</span>
+                    <span>Remote System Management</span>
+                  </h4>
+
+                  <div className="form-group" style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.65rem 0.75rem',
+                    backgroundColor: 'var(--bg-tertiary)',
+                    borderRadius: 'var(--border-radius)',
+                    border: '1px solid var(--border)'
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <strong style={{ fontSize: '0.85rem' }}>Allow Remote Exec</strong>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Run system commands, check updates, and reboot via the Systems dashboard</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAllowRemoteExec(!allowRemoteExec)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', flexShrink: 0 }}
+                    >
+                      {allowRemoteExec ? (
+                        <span style={{ fontSize: '1.5rem', color: 'var(--accent)', lineHeight: 1 }}>⏻</span>
+                      ) : (
+                        <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)', lineHeight: 1, opacity: 0.5 }}>⏻</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {allowRemoteExec && (
+                    <>
+                      <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label htmlFor="conn-ostype">OS Type Override <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional — auto-detected if blank)</span></label>
+                        <select
+                          id="conn-ostype"
+                          className="input-field"
+                          value={osType}
+                          onChange={(e) => setOsType(e.target.value)}
+                          disabled={loading}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <option value="">Auto-detect</option>
+                          <option value="debian">Debian / Ubuntu</option>
+                          <option value="rhel">RHEL / CentOS / Fedora</option>
+                          <option value="arch">Arch / Manjaro</option>
+                          <option value="alpine">Alpine</option>
+                          <option value="opensuse">openSUSE</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="conn-pollinterval">Auto-Poll Interval (minutes)</label>
+                        <input
+                          type="number"
+                          id="conn-pollinterval"
+                          className="input-field"
+                          placeholder="60"
+                          min={5}
+                          max={1440}
+                          value={pollIntervalMin}
+                          onChange={(e) => setPollIntervalMin(Math.max(5, Math.min(1440, Number(e.target.value))))}
+                          disabled={loading}
+                        />
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+                          How often the Systems dashboard auto-refreshes this server. Min 5 min, max 24 hours.
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '0.5rem 0 0.5rem 0' }} />
                 </>
               )}
 

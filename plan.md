@@ -21,7 +21,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Prisma SQLite configuration with `connection_limit=1` for WAL mode safety
 - [x] Define database models:
   - `User` (id, email, name, username, role, passwordHash, avatarUrl, mfaSecret [encrypted], mfaEnabled, mfaEnforced, createdAt, updatedAt)
-  - `Connection` (id, userId, name, host, port, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, createdAt, updatedAt)
+   - `Connection` (id, userId, name, host, domain, port, protocol, tags, username, authType, password [encrypted], privateKey [encrypted], passphrase [encrypted], isShared, ignoreCert, allowRemoteExec, osType, pollIntervalMin, createdAt, updatedAt)
   - `SharedConnection` (connectionId, userId) join table for user-level connection sharing
   - `AuditLog` (id, userId, event, ip, meta [JSON], createdAt)
 - [x] Code encryption helpers (`lib/crypto.ts`) implementing AES-256-GCM
@@ -110,6 +110,10 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [x] Reboot command dispatch with confirm, audit logging, and post-reboot uptime verification
 - [x] Post-reboot tracking: "rebooting..." status → auto-reconnect → verify uptime changed
 - [x] Role-based access: ADMIN always authorized; USER requires `systems` in allowedPlugins
+- [x] Remote Exec fields in connection form UI (allowRemoteExec toggle, OS override, poll interval) — only shown when Systems plugin is enabled
+- [x] API routes updated: GET/POST/PATCH /api/connections accept and return new fields
+- [x] User dashboard active sessions widget (table + terminate, polls every 5s)
+- [x] Documentation updated in admin-guide.md
 
 ---
 

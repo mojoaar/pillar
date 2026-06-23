@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // 3. Parse request body updates
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert, allowRemoteExec, osType, pollIntervalMin } = body;
 
     const updateData: any = {};
     if (name) updateData.name = name.trim();
@@ -55,6 +55,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (ignoreCert !== undefined) {
       updateData.ignoreCert = Boolean(ignoreCert);
+    }
+    if (allowRemoteExec !== undefined) {
+      updateData.allowRemoteExec = Boolean(allowRemoteExec);
+    }
+    if (osType !== undefined) {
+      updateData.osType = osType || null;
+    }
+    if (pollIntervalMin !== undefined) {
+      updateData.pollIntervalMin = Math.max(5, Math.min(1440, Number(pollIntervalMin) || 60));
     }
     
     // Sanitize incoming tags updates (Finding #tags)
@@ -120,6 +129,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         port: updated.port,
         username: updated.username,
         authType: updated.authType,
+        allowRemoteExec: updated.allowRemoteExec,
+        osType: updated.osType,
+        pollIntervalMin: updated.pollIntervalMin,
       },
       ok: true,
     });

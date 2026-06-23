@@ -177,7 +177,7 @@ export default async function DashboardPage() {
         {/* Security Audit Activity Feed */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div className="flex-between">
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Recent Security Events</h3>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Recent Events</h3>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-updating</span>
           </div>
 

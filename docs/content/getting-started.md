@@ -77,7 +77,7 @@ Pillar includes advanced, modifier-independent global shortcuts and local termin
 - **Trigger Chord**: Press **`Cmd+K`** (on macOS) or **`Ctrl+K`** (on Windows/Linux) globally on any page.
 - **Actions Available**:
   - Instantly search through your connections catalog.
-  - Teleport to different navigation tabs (Dashboard, Connections, Settings, Documentation, API Reference, Proxmox VE).
+  - Teleport to different navigation tabs (Dashboard, Connections, Systems, Settings, Documentation, API Reference, Proxmox VE).
   - Hot-swap between all **8 client color themes** and **10 monospace coding fonts** on-the-fly.
 
 ### 📋 Terminal Interactivity & Clipboard Overrides

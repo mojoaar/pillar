@@ -41,6 +41,12 @@ export default async function ConnectionsCatalogPage() {
     email: u.email
   }));
 
+  // 4. Check if Systems plugin is enabled
+  const systemsPlugin = await db.plugin.findUnique({
+    where: { id: 'systems' },
+    select: { enabled: true },
+  });
+
   // Normalize models for catalog passing
   const serializedConnections = connections.map((c) => ({
     id: c.id,
@@ -54,7 +60,10 @@ export default async function ConnectionsCatalogPage() {
     username: c.username,
     authType: c.authType as 'PASSWORD' | 'KEY',
     isShared: c.isShared,
-    userId: c.userId
+    userId: c.userId,
+    allowRemoteExec: c.allowRemoteExec,
+    osType: c.osType,
+    pollIntervalMin: c.pollIntervalMin,
   }));
 
   return (
@@ -62,6 +71,7 @@ export default async function ConnectionsCatalogPage() {
       initialConnections={serializedConnections}
       users={serializedUsers}
       currentUserId={session.user.id!}
+      isSystemsEnabled={systemsPlugin?.enabled || false}
     />
   );
 }

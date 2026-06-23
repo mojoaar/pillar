@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
       username: c.username,
       authType: c.authType,
       isShared: c.isShared,
+      allowRemoteExec: c.allowRemoteExec,
+      osType: c.osType,
+      pollIntervalMin: c.pollIntervalMin,
       createdAt: c.createdAt,
     }));
 
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert } = body;
+    const { name, host, domain, port, protocol, tags, username, authType, password, privateKey, passphrase, ignoreCert, allowRemoteExec, osType, pollIntervalMin } = body;
 
     if (!name || !host || !username || !authType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -111,6 +114,9 @@ export async function POST(request: NextRequest) {
         tags: sanitizedTags,
         username: username.trim(),
         authType: authType === 'KEY' ? 'KEY' : 'PASSWORD',
+        allowRemoteExec: Boolean(allowRemoteExec),
+        osType: osType || null,
+        pollIntervalMin: pollIntervalMin ? Math.max(5, Math.min(1440, Number(pollIntervalMin))) : 60,
         password: encryptedPassword,
         privateKey: encryptedPrivateKey,
         passphrase: encryptedPassphrase,
@@ -136,6 +142,9 @@ export async function POST(request: NextRequest) {
         port: connection.port,
         username: connection.username,
         authType: connection.authType,
+        allowRemoteExec: connection.allowRemoteExec,
+        osType: connection.osType,
+        pollIntervalMin: connection.pollIntervalMin,
       },
       ok: true,
     }, { status: 201 });
