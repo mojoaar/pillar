@@ -108,3 +108,44 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+/**
+ * DELETE /api/profile/avatar
+ * Removes the current user's avatar image and clears the database reference.
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id!;
+    const currentUser = await db.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+
+    // Delete the avatar file from disk if it exists
+    if (currentUser?.avatarUrl?.startsWith('/uploads/avatars/')) {
+      try {
+        const filename = path.basename(currentUser.avatarUrl);
+        const filepath = path.join(process.cwd(), 'public', 'uploads', 'avatars', filename);
+        await unlink(filepath);
+      } catch (err: any) {
+        console.warn(`[Avatar Remove] Failed to delete old file: ${err.message}`);
+      }
+    }
+
+    // Clear the avatarUrl from the database
+    await db.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+    });
+
+    return NextResponse.json({ ok: true, data: { avatarUrl: null } });
+  } catch (error: any) {
+    console.error('Failed to remove avatar:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

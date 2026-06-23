@@ -96,6 +96,25 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/profile/avatar', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove avatar.');
+      setAvatarPreview(null);
+      setAvatarFile(null);
+      setUser({ ...user, avatarUrl: null });
+      setSuccess('Avatar removed successfully!');
+      window.location.reload();
+    } catch (err: any) {
+      setError(err.message || 'An error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -413,10 +432,18 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label htmlFor="avatar-file" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }}>
-                  <Upload size={14} />
-                  <span>Choose Image</span>
-                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <label htmlFor="avatar-file" className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }}>
+                    <Upload size={14} />
+                    <span>Choose Image</span>
+                  </label>
+                  {user.avatarUrl && (
+                    <button type="button" className="btn btn-danger btn-sm" onClick={handleRemoveAvatar} disabled={loading}>
+                      <Trash2 size={14} />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                </div>
                 <input
                   type="file"
                   id="avatar-file"
