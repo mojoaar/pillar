@@ -43,6 +43,7 @@ export default function ProxmoxDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
+  const [domain, setDomain] = useState('');
   const [protocol, setProtocol] = useState<'SSH' | 'VNC'>('SSH');
   const [port, setPort] = useState(22);
   const [username, setUsername] = useState('root');
@@ -88,6 +89,7 @@ const [saveLoading, setSaveLoading] = useState(false);
   const handleOpenImportModal = (vm: ProxmoxResource) => {
     setName(vm.name);
     setHost((vm as any).network || '');
+    setDomain('');
     setProtocol('SSH');
     setPort(22);
     setUsername('root');
@@ -105,6 +107,7 @@ setSaveError(null);
   const handleOpenNodeImportModal = (node: NodeResource) => {
     setName(node.node);
     setHost(node.ip || '');
+    setDomain('');
     setProtocol('SSH');
     setPort(22);
     setUsername('root');
@@ -137,6 +140,7 @@ setSaveError(null);
         body: JSON.stringify({
           name,
           host,
+          domain: domain || null,
           port,
           protocol,
           tags,
@@ -548,6 +552,20 @@ setSaveError(null);
                       required
                       disabled={saveLoading}
                       placeholder="e.g. root"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.25rem', display: 'block' }}>Domain <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(Optional)</span></label>
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={domain}
+                      onChange={(e) => setDomain(e.target.value)}
+                      disabled={saveLoading}
+                      placeholder="e.g. pve.home.arpa"
                     />
                   </div>
                 </div>
