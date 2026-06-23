@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { checkUpdates, installUpdates, rebootSystem } from '@/lib/remote-exec';
+import { checkUpdates, installUpdates, rebootSystem, fullUpgrade } from '@/lib/remote-exec';
 import { writeAudit } from '@/lib/audit';
 
 interface RouteParams {
@@ -55,6 +55,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (action === 'install-updates') {
       await writeAudit(userId, 'System Updates Installed', ip, { connectionId: id, action });
       const result = await installUpdates(id);
+      return NextResponse.json({ ok: result.success, stdout: result.stdout, stderr: result.stderr });
+    }
+
+    if (action === 'full-upgrade') {
+      await writeAudit(userId, 'System Full Upgrade Initiated', ip, { connectionId: id, action });
+      const result = await fullUpgrade(id);
       return NextResponse.json({ ok: result.success, stdout: result.stdout, stderr: result.stderr });
     }
 

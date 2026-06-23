@@ -53,10 +53,11 @@ export default function SystemsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [rebootingId, setRebootingId] = useState<string | null>(null);
   const [checkingAll, setCheckingAll] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<{ id: string; action: 'install-updates' | 'reboot' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: string; action: 'install-updates' | 'reboot' | 'full-upgrade' } | null>(null);
   const [updateResults, setUpdateResults] = useState<Record<string, UpdateResult>>({});
   const [rebooting, setRebooting] = useState<RebootingState>(null);
   const [actionOutput, setActionOutput] = useState<string | null>(null);
+  const [fullUpgradePending, setFullUpgradePending] = useState<Set<string>>(new Set());
   const [hour12, setHour12] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('pillar-clock') === '12h';
@@ -199,8 +200,41 @@ export default function SystemsPage() {
       setActionOutput(data.ok
         ? `Updates installed successfully.\n${data.stdout || ''}`
         : `Update failed:\n${data.stderr || data.stdout || 'Unknown error'}`);
-      // Refresh systems after update
       await fetchSystems();
+      // Re-check updates; if packages remain, mark for full upgrade
+      await handleCheckUpdates(id);
+      setFullUpgradePending((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    } catch (err: any) {
+      setActionOutput(`Error: ${err.message}`);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleFullUpgrade = async (id: string) => {
+    setConfirmAction(null);
+    setUpdatingId(id);
+    try {
+      const res = await fetch(`/api/systems/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'full-upgrade' }),
+      });
+      const data = await res.json();
+      setActionOutput(data.ok
+        ? `Full upgrade completed.\n${data.stdout || ''}`
+        : `Full upgrade failed:\n${data.stderr || data.stdout || 'Unknown error'}`);
+      await fetchSystems();
+      await handleCheckUpdates(id);
+      setFullUpgradePending((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (err: any) {
       setActionOutput(`Error: ${err.message}`);
     } finally {
@@ -281,19 +315,22 @@ export default function SystemsPage() {
         <div className={styles.overlay} onClick={() => setConfirmAction(null)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.modalTitle}>
-              {confirmAction.action === 'install-updates' ? 'Install Updates' : 'Reboot System'}
+              {confirmAction.action === 'install-updates' ? 'Install Updates' : confirmAction.action === 'full-upgrade' ? 'Full Upgrade' : 'Reboot System'}
             </h3>
             <p className={styles.modalText}>
               {confirmAction.action === 'install-updates'
                 ? 'This will install all pending system updates on the remote server. This may take several minutes.'
+                : confirmAction.action === 'full-upgrade'
+                ? 'This will perform a full dist-upgrade, which may install new packages and remove conflicting ones to resolve all pending upgrades.'
                 : 'This will reboot the remote system. All active connections to this server will be terminated.'}
             </p>
             <div className={styles.modalButtons}>
               <button className="btn btn-secondary" onClick={() => setConfirmAction(null)}>Cancel</button>
               <button
-                className={`btn ${confirmAction.action === 'reboot' ? 'btn-danger' : 'btn-primary'}`}
+                className={`btn ${confirmAction.action === 'reboot' ? 'btn-danger' : confirmAction.action === 'full-upgrade' ? 'btn-primary' : 'btn-primary'}`}
                 onClick={() => {
                   if (confirmAction.action === 'install-updates') handleInstallUpdates(confirmAction.id);
+                  else if (confirmAction.action === 'full-upgrade') handleFullUpgrade(confirmAction.id);
                   else handleReboot(confirmAction.id);
                 }}
               >
@@ -431,6 +468,17 @@ export default function SystemsPage() {
                     <ArrowUpCircle size={14} />
                     <span>Update</span>
                   </button>
+
+                  {updates && updates.packageCount > 0 && fullUpgradePending.has(sys.id) && (
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setConfirmAction({ id: sys.id, action: 'full-upgrade' })}
+                      disabled={isBusy}
+                    >
+                      <ArrowUpCircle size={14} />
+                      <span>Full Upgrade</span>
+                    </button>
+                  )}
 
                   <button
                     className="btn btn-danger btn-sm"

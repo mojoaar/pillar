@@ -205,6 +205,31 @@ export async function installUpdates(connectionId: string): Promise<CommandResul
   }
 }
 
+export async function fullUpgrade(connectionId: string): Promise<CommandResult> {
+  const connection = await db.connection.findUnique({ where: { id: connectionId } });
+  if (!connection) throw new Error('Connection not found');
+
+  const password = connection.password ? decrypt(connection.password) : null;
+  const privateKey = connection.privateKey ? decrypt(connection.privateKey) : null;
+  const passphrase = connection.passphrase ? decrypt(connection.passphrase) : null;
+
+  let client: Client | null = null;
+  try {
+    client = await connectForCommand(
+      connection.host, connection.port, connection.username,
+      connection.authType, password, privateKey, passphrase
+    );
+
+    const detectOs = connection.osType || '';
+    const cmd = getFullUpgradeInstallCommand(detectOs);
+    return await execSSH(client, cmd);
+  } finally {
+    if (client) {
+      try { client.end(); } catch (e) {}
+    }
+  }
+}
+
 export async function rebootSystem(connectionId: string): Promise<CommandResult> {
   const connection = await db.connection.findUnique({ where: { id: connectionId } });
   if (!connection) throw new Error('Connection not found');
@@ -266,4 +291,12 @@ function getUpdateInstallCommand(osType: string): string {
     return 'sudo zypper update -y 2>&1';
   }
   return 'sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y 2>&1';
+}
+
+function getFullUpgradeInstallCommand(osType: string): string {
+  const os = osType.toLowerCase();
+  if (os.includes('debian') || os.includes('ubuntu') || os.includes('mint')) {
+    return 'sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y 2>&1';
+  }
+  return getUpdateInstallCommand(osType);
 }
