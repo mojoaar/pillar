@@ -21,6 +21,7 @@ describe('sessionRegistry', () => {
     const { sessionRegistry } = await import('../sessions');
     sessionRegistry.set('sess-1', {
       ws: {},
+      userId: 'user-1',
       username: 'admin',
       host: '192.168.1.1',
       startedAt: new Date('2025-01-01'),
@@ -41,6 +42,7 @@ describe('sessionRegistry', () => {
     const { sessionRegistry } = await import('../sessions');
     sessionRegistry.set('sess-1', {
       ws: {},
+      userId: 'user-1',
       username: 'admin',
       host: '192.168.1.1',
       startedAt: new Date(),
@@ -55,8 +57,8 @@ describe('sessionRegistry', () => {
 
   it('multiple sessions tracked independently', async () => {
     const { sessionRegistry } = await import('../sessions');
-    sessionRegistry.set('a', { ws: {}, username: 'u1', host: 'h1', startedAt: new Date(), connectionId: 'c1', protocol: 'SSH' });
-    sessionRegistry.set('b', { ws: {}, username: 'u2', host: 'h2', startedAt: new Date(), connectionId: 'c2', protocol: 'VNC' });
+    sessionRegistry.set('a', { userId: 'user-1', ws: {}, username: 'u1', host: 'h1', startedAt: new Date(), connectionId: 'c1', protocol: 'SSH' });
+    sessionRegistry.set('b', { userId: 'user-2', ws: {}, username: 'u2', host: 'h2', startedAt: new Date(), connectionId: 'c2', protocol: 'VNC' });
     expect(sessionRegistry.count()).toBe(2);
     sessionRegistry.delete('a');
     expect(sessionRegistry.count()).toBe(1);
@@ -68,6 +70,7 @@ describe('sessionRegistry', () => {
     const mockWs = { close: vi.fn() as any };
     sessionRegistry.set('sess-1', {
       ws: mockWs,
+      userId: 'user-1',
       username: 'admin',
       host: 'h1',
       startedAt: new Date(),

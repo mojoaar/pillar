@@ -284,6 +284,8 @@ app.prepare().then(() => {
           // Expose session in active registry
           sessionRegistry.set(sessionId, {
             ws,
+            userId: decodedUser.id as string,
+
             username: decodedUser.email || 'unknown',
             host: connection.host,
             startedAt: new Date(),
@@ -339,6 +341,7 @@ app.prepare().then(() => {
               if (current) {
                 sessionRegistry.set(sessionId, {
                   ws: null,
+                  userId: decodedUser.id as string,
                   username: current.username,
                   host: `${current.host.replace(' (Background)', '')} (Background)`,
                   startedAt: current.startedAt,
@@ -459,6 +462,8 @@ app.prepare().then(() => {
         // Map active sessions
         sessionRegistry.set(sessionId, {
           ws,
+          userId: decodedUser.id as string,
+
           username: decodedUser.email || 'unknown',
           host: connection.host,
           startedAt: new Date(),
@@ -525,6 +530,8 @@ app.prepare().then(() => {
             if (current) {
               sessionRegistry.set(sessionId, {
                 ws: null,
+                userId: decodedUser.id as string,
+
                 username: current.username,
                 host: `${current.host.replace(' (Background)', '')} (Background)`,
                 startedAt: current.startedAt,
@@ -639,6 +646,8 @@ app.prepare().then(() => {
       // Log session
       sessionRegistry.set(sessionId, {
         ws,
+        userId: decodedUser.id as string,
+
         username: decodedUser.email || 'unknown',
         host: `${connection.host} (VNC)`,
         startedAt: new Date(),

@@ -23,8 +23,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const role = (session.user as any).role;
+    const userId = session.user.id as string;
+
+    // Only ADMIN can terminate any session; users can terminate their own
     if (role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden. Administrative scope required.' }, { status: 403 });
+      const allSessions = sessionRegistry.getAll();
+      const target = allSessions.find((s) => s.sessionId === id && s.userId === userId);
+      if (!target) {
+        return NextResponse.json({ error: 'Forbidden. You can only terminate your own sessions.' }, { status: 403 });
+      }
     }
 
     // 2. Terminate the active session via the shared session registry

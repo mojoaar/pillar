@@ -4,7 +4,8 @@
  */
 
 interface ActiveSession {
-  ws: unknown;
+  ws: unknown | null;
+  userId: string;
   username: string;
   host: string;
   startedAt: Date;
@@ -14,6 +15,7 @@ interface ActiveSession {
 
 interface SessionData {
   sessionId: string;
+  userId: string;
   username: string;
   host: string;
   startedAt: Date;
@@ -49,6 +51,7 @@ export const sessionRegistry = {
   getAll(): SessionData[] {
     return Array.from(_registry.entries()).map(([id, s]) => ({
       sessionId: id,
+      userId: s.userId,
       username: s.username,
       host: s.host,
       startedAt: s.startedAt,

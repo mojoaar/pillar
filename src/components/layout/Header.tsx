@@ -152,9 +152,9 @@ export default function Header({ user }: HeaderProps) {
         <button 
           onClick={handleOpenSessionsModal}
           className={styles.activeSessionsBadge} 
-          title={isAdmin && sessionCount > 0 ? "Click to inspect and manage active connection tunnels" : "Active terminal gateway sessions"}
+          title={sessionCount > 0 ? "Click to inspect and manage active connection tunnels" : "No active terminal gateway sessions"}
           style={{
-            cursor: (isAdmin && sessionCount > 0) ? 'pointer' : 'default',
+            cursor: sessionCount > 0 ? 'pointer' : 'default',
             border: '1px solid var(--border)',
             background: 'var(--bg-tertiary)',
             fontFamily: 'inherit',
@@ -165,7 +165,7 @@ export default function Header({ user }: HeaderProps) {
             borderRadius: 'var(--border-radius)',
             transition: 'all 0.15s ease'
           }}
-          disabled={!isAdmin || sessionCount === 0}
+          disabled={sessionCount === 0}
         >
           <div className={styles.activeIndicator} />
           <span>{sessionCount} session{sessionCount !== 1 ? 's' : ''}</span>
