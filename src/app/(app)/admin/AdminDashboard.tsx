@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Shield, Radio, Activity, Cpu, Users, History, Play } from 'lucide-react';
+import { Shield, Radio, Activity, Cpu, Users, History, Play, X } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
 
 interface SessionData {
@@ -49,6 +49,18 @@ export default function AdminDashboard() {
   const formatBytes = (bytes: number) => {
     const gb = bytes / (1024 * 1024 * 1024);
     return `${gb.toFixed(1)} GB`;
+  };
+
+  const handleTerminate = async (sessionId: string) => {
+    if (!confirm('Forcefully terminate this active WebSocket session? The user will be disconnected immediately.')) return;
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchMetrics(); // Refresh immediately
+      }
+    } catch (err) {
+      console.error('Failed to terminate session:', err);
+    }
   };
 
   const getUptimeString = (uptimeSeconds: number) => {
@@ -177,6 +189,7 @@ export default function AdminDashboard() {
                   <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Active User</th>
                   <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Remote Host Address</th>
                   <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Start Time (Local)</th>
+                  <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -193,6 +206,17 @@ export default function AdminDashboard() {
                     </td>
                     <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>
                       {formatDateTime(sess.startedAt, { dateFormat: 'EU' })}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleTerminate(sess.sessionId)}
+                        title="Forcefully terminate this session"
+                        style={{ padding: '0.15rem 0.4rem' }}
+                      >
+                        <X size={14} />
+                        <span style={{ fontSize: '0.7rem' }}>Kill</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
