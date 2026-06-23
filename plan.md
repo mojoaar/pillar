@@ -7,7 +7,7 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - **Frontend**: Next.js 15+ (App Router), React 19, TypeScript
 - **Styling**: Next.js CSS Modules (`*.module.css`) + CSS Custom Properties in `globals.css` (NO Tailwind CSS)
 - **Backend & WS Bridge**: Custom Express.js server initializing Next.js and hosting the WebSocket server for real-time duplex streaming to `ssh2` sessions.
-- **Database**: SQLite managed via Prisma ORM (`connection_limit=1` in WAL mode)
+- **Database**: SQLite managed via Prisma ORM (Prisma v7 driver adapter, no `connection_limit` needed)
 - **Encryption**: AES-256-GCM via Node `crypto` using `ENCRYPTION_KEY` hex env var (min 32 bytes)
 - **Auth**: NextAuth.js v5 (JWT strategy, credential provider + TOTP verification step)
 

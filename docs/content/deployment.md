@@ -190,7 +190,7 @@ Create `/opt/pillar/.env`:
 ```bash
 cat > /opt/pillar/.env << 'ENVEOF'
 # Database (SQLite — no external DB server needed)
-DATABASE_URL=file:/opt/pillar/data/pillar.db?connection_limit=1
+DATABASE_URL=file:/opt/pillar/data/pillar.db
 
 # Security Secrets (replace with your generated values!)
 ENCRYPTION_KEY=your_64_character_hex_key_here
