@@ -100,6 +100,17 @@ Pillar is a self-hosted, responsive, and secure web-based remote-access gateway 
 - [ ] Launch interactive SSH sessions through Pillar's WebSocket tunnel
 - [ ] Terminal raw mode, resize signals, and PTY pipe management
 
+### Phase 14: Remote System Management & Update Orchestrator (Plugin)
+- [x] `allowRemoteExec` Boolean field on Connection model (opt-in per-connection)
+- [x] Plugin registration: `systems` plugin toggle in Admin → Manage Plugins
+- [x] Auto-detection of remote OS via `cat /etc/os-release` with user-override per-connection
+- [x] `/systems` dashboard page: per-server OS, uptime, pending updates, color-coded status
+- [x] Configurable auto-poll interval (default 1 hour, per-connection override)
+- [x] Update install command dispatch with confirm modals and audit logging
+- [x] Reboot command dispatch with confirm, audit logging, and post-reboot uptime verification
+- [x] Post-reboot tracking: "rebooting..." status → auto-reconnect → verify uptime changed
+- [x] Role-based access: ADMIN always authorized; USER requires `systems` in allowedPlugins
+
 ---
 
 ## Security Remediation Backlog

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Terminal, Plus, ArrowRight, ShieldCheck, HeartPulse, History } from 'lucide-react';
 import { formatDateTime } from '@/lib/datetime';
+import ActiveSessionsWidget from '@/components/layout/ActiveSessionsWidget';
 
 export default async function DashboardPage() {
   // Resolve user session on the server (Security mandate #3)
@@ -225,6 +226,8 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <ActiveSessionsWidget userId={session.user.id as string} />
     </div>
   );
 }

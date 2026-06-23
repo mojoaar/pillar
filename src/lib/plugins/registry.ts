@@ -46,5 +46,13 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
         defaultValue: 'false' 
       }
     ]
+  },
+  {
+    id: 'systems',
+    name: 'Remote Systems',
+    description: 'Monitor remote server operating systems, uptime, and pending updates across your homelab. Run system updates and reboots from a central dashboard.',
+    category: 'Infrastructure',
+    icon: '🖥️',
+    configFields: []
   }
 ];

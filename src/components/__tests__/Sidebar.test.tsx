@@ -46,11 +46,29 @@ describe('Sidebar component logic', () => {
       expect(showPve(false, false)).toBe(false);
     });
 
+    it('Systems page only visible when plugin enabled AND authorized', () => {
+      const showSystems = (isSystemsEnabled: boolean, isAuthorized: boolean) => isSystemsEnabled && isAuthorized;
+      expect(showSystems(true, true)).toBe(true);
+      expect(showSystems(true, false)).toBe(false);
+      expect(showSystems(false, true)).toBe(false);
+      expect(showSystems(false, false)).toBe(false);
+    });
+
     it('Proxmox authorized for ADMIN or user with allowedPlugins includes proxmox-ve', () => {
       const isAuthorized = (role: string, allowedPlugins: string | null) =>
         role === 'ADMIN' || (allowedPlugins || '').includes('proxmox-ve');
       expect(isAuthorized('ADMIN', null)).toBe(true);
       expect(isAuthorized('USER', 'proxmox-ve')).toBe(true);
+      expect(isAuthorized('USER', 'other-plugin')).toBe(false);
+      expect(isAuthorized('USER', null)).toBe(false);
+    });
+
+    it('Systems authorized for ADMIN or user with allowedPlugins includes systems', () => {
+      const isAuthorized = (role: string, allowedPlugins: string | null) =>
+        role === 'ADMIN' || (allowedPlugins || '').includes('systems');
+      expect(isAuthorized('ADMIN', null)).toBe(true);
+      expect(isAuthorized('USER', 'systems')).toBe(true);
+      expect(isAuthorized('USER', 'proxmox-ve,systems')).toBe(true);
       expect(isAuthorized('USER', 'other-plugin')).toBe(false);
       expect(isAuthorized('USER', null)).toBe(false);
     });

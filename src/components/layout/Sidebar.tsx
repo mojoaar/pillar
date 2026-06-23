@@ -13,6 +13,7 @@ import {
   LogOut,
   Server,
   Puzzle,
+  Monitor,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -28,6 +29,7 @@ interface SidebarProps {
     avatarUrl: string | null;
     allowedPlugins?: string | null;
     isPveEnabled?: boolean;
+    isSystemsEnabled?: boolean;
   };
 }
 
@@ -162,6 +164,16 @@ export default function Sidebar({ user }: SidebarProps) {
           >
             <Server size={20} />
             <span className={styles.navText}>Proxmox VE</span>
+          </Link>
+        )}
+
+        {user.isSystemsEnabled && (user.role === 'ADMIN' || user.allowedPlugins?.includes('systems')) && (
+          <Link 
+            href="/systems" 
+            className={`${styles.navItem} ${isActive('/systems') ? styles.navItemActive : ''}`}
+          >
+            <Monitor size={20} />
+            <span className={styles.navText}>Systems</span>
           </Link>
         )}
 

@@ -44,10 +44,13 @@ model Connection {
   password     String?            // encrypted AES-256-GCM
   privateKey   String?            // encrypted AES-256-GCM
   passphrase   String?            // encrypted AES-256-GCM
-  isShared     Boolean            @default(false)
-  ignoreCert   Boolean            @default(false)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  isShared         Boolean            @default(false)
+  ignoreCert       Boolean            @default(false)
+  allowRemoteExec  Boolean            @default(false)
+  osType           String?            // auto-detected or user-override OS (e.g. "debian", "ubuntu", "rhel")
+  pollIntervalMin  Int                @default(60) // minutes between auto-poll cycles
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   user         User               @relation("UserConnections", fields: [userId], references: [id], onDelete: Cascade)
   sharedWith   SharedConnection[]

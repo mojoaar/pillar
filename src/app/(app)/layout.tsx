@@ -18,7 +18,7 @@ export default async function AppLayout({
   }
 
   // Query the user's fresh database profile and plugin enabled states in parallel
-  const [dbUser, pvePlugin] = await Promise.all([
+  const [dbUser, pvePlugin, systemsPlugin] = await Promise.all([
     db.user.findUnique({
       where: { id: session.user.id },
       select: { avatarUrl: true, allowedPlugins: true },
@@ -26,7 +26,11 @@ export default async function AppLayout({
     db.plugin.findUnique({
       where: { id: 'proxmox-ve' },
       select: { enabled: true },
-    })
+    }),
+    db.plugin.findUnique({
+      where: { id: 'systems' },
+      select: { enabled: true },
+    }),
   ]);
 
   const user = {
@@ -37,6 +41,7 @@ export default async function AppLayout({
     avatarUrl: dbUser?.avatarUrl || null,
     allowedPlugins: dbUser?.allowedPlugins || null,
     isPveEnabled: pvePlugin?.enabled || false,
+    isSystemsEnabled: systemsPlugin?.enabled || false,
   };
 
   return (
