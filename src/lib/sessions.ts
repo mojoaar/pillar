@@ -29,9 +29,9 @@ const globalForSessions = globalThis as unknown as {
 
 const _registry = globalForSessions.sessionRegistryMap ?? new Map<string, ActiveSession>();
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForSessions.sessionRegistryMap = _registry;
-}
+// Always store the session registry on globalThis so server.ts (tsc-compiled) and Next.js API
+// routes (Turbopack-compiled) share the exact same map instance in both dev and production.
+globalForSessions.sessionRegistryMap = _registry;
 
 export const sessionRegistry = {
   set(sessionId: string, session: ActiveSession) {
