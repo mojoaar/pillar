@@ -1,7 +1,7 @@
 # Pillar — Implementation Plan (Completed)
 
 ## Project Overview
-Pillar is a self-hosted, responsive, and secure web-based remote-access gateway for homelabs. It enables starting secure browser-based SSH sessions, and is designed for future extension with VNC and Proxmox API integration.
+Pillar is a self-hosted, responsive, and secure web-based remote-access gateway for servers and infrastructures. It enables starting secure browser-based SSH sessions, and is designed for future extension with VNC and Proxmox API integration.
 
 ## Tech Stack
 - **Frontend**: Next.js 15+ (App Router), React 19, TypeScript

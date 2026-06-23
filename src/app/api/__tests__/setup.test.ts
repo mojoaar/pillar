@@ -20,7 +20,7 @@ describe('Setup API logic', () => {
 
     it('accepts valid email format', () => {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      expect(emailRegex.test('admin@homelab.local')).toBe(true);
+      expect(emailRegex.test('admin@example.local')).toBe(true);
       expect(emailRegex.test('not-an-email')).toBe(false);
     });
 

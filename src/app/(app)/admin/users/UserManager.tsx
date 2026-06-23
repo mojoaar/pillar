@@ -441,7 +441,7 @@ export default function UserManager({ initialUsers, currentUserId }: UserManager
                   type="email"
                   id="create-email"
                   className="input-field"
-                  placeholder="sarah@homelab.local"
+                  placeholder="sarah@example.local"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}

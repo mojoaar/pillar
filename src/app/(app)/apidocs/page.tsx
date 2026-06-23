@@ -27,14 +27,14 @@ const apiSpecs: APIEndpoint[] = [
     auth: 'Public',
     reqBody: {
       name: 'Alex M.',
-      email: 'admin@homelab.local',
+      email: 'admin@example.local',
       username: 'admin',
       password: 'MyPassword123'
     },
     resBody: {
       data: {
         id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
-        email: 'admin@homelab.local',
+        email: 'admin@example.local',
         username: 'admin',
         role: 'ADMIN',
         createdAt: '2026-06-21T07:15:30.000Z'
@@ -50,14 +50,14 @@ const apiSpecs: APIEndpoint[] = [
     desc: 'Verify standard email + password login credentials. If TOTP MFA is enabled on the account, throws a special "MFA_REQUIRED" validation error prompting the client form to reveal the 6-digit TOTP challenge sub-step.',
     auth: 'Public',
     reqBody: {
-      email: 'admin@homelab.local',
+      email: 'admin@example.local',
       password: 'MyPassword123',
       totpCode: '123456 (Required if MFA is enabled)'
     },
     resBody: {
       user: {
         id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
-        email: 'admin@homelab.local',
+        email: 'admin@example.local',
         name: 'Alex M.',
         role: 'ADMIN'
       },
@@ -181,7 +181,7 @@ const apiSpecs: APIEndpoint[] = [
     auth: 'USER',
     reqBody: {
       name: 'Alex Updated',
-      email: 'alex.u@homelab.local',
+      email: 'alex.u@example.local',
       currentPassword: 'OldPassword123 (Required only if changing password)',
       newPassword: 'MySecurePassword456'
     },
@@ -190,7 +190,7 @@ const apiSpecs: APIEndpoint[] = [
         id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d',
         name: 'Alex Updated',
         username: 'admin',
-        email: 'alex.u@homelab.local',
+        email: 'alex.u@example.local',
         role: 'ADMIN',
         avatarUrl: '/uploads/avatars/admin_1718956822.png'
       },
@@ -294,7 +294,7 @@ const apiSpecs: APIEndpoint[] = [
     desc: 'Fetch all registered local user accounts. Returns email, username, name, role, MFA status, suspension state, and allowed plugins. Restricted to administrators (ADMIN role) only.',
     auth: 'ADMIN',
     resBody: {
-      data: [{ id: 'uuid', email: 'user@homelab.local', username: 'john', role: 'USER', mfaEnabled: true, isSuspended: false, allowedPlugins: 'proxmox-ve' }],
+      data: [{ id: 'uuid', email: 'user@example.local', username: 'john', role: 'USER', mfaEnabled: true, isSuspended: false, allowedPlugins: 'proxmox-ve' }],
       ok: true
     }
   },
@@ -305,8 +305,8 @@ const apiSpecs: APIEndpoint[] = [
     path: '/api/admin/users',
     desc: 'Register a new local user account. Accepts name, email, username, password (min 8 chars), and role (ADMIN or USER). Restricted to administrators (ADMIN role) only.',
     auth: 'ADMIN',
-    reqBody: { name: 'Sarah K.', email: 'sarah@homelab.local', username: 'sarah', password: 'securepassword', role: 'USER' },
-    resBody: { data: { id: 'uuid', email: 'sarah@homelab.local', username: 'sarah', role: 'USER' }, ok: true }
+    reqBody: { name: 'Sarah K.', email: 'sarah@example.local', username: 'sarah', password: 'securepassword', role: 'USER' },
+    resBody: { data: { id: 'uuid', email: 'sarah@example.local', username: 'sarah', role: 'USER' }, ok: true }
   },
   {
     id: 'update-user',

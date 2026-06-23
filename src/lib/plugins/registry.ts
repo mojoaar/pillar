@@ -20,7 +20,7 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
   {
     id: 'proxmox-ve',
     name: 'Proxmox VE',
-    description: 'Monitor hypervisor cluster health, read real-time node/VM statuses, send runtime power actions, and manage your virtual homelab.',
+    description: 'Monitor hypervisor cluster health, read real-time node/VM statuses, send runtime power actions, and manage your virtual infrastructure.',
     category: 'Infrastructure',
     icon: '☁️',
     configFields: [
@@ -50,7 +50,7 @@ export const AVAILABLE_PLUGINS: PluginDefinition[] = [
   {
     id: 'systems',
     name: 'Remote Systems',
-    description: 'Monitor remote server operating systems, uptime, and pending updates across your homelab. Run system updates and reboots from a central dashboard.',
+    description: 'Monitor remote server operating systems, uptime, and pending updates across your environment. Run system updates and reboots from a central dashboard.',
     category: 'Infrastructure',
     icon: '🖥️',
     configFields: []

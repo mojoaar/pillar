@@ -10,7 +10,7 @@ Pillar acts as a secured duplex bridge between your web browser and your local h
 
 ```
 ┌─────────────────┐       HTTPS       ┌─────────────────┐       Local SSH       ┌─────────────────┐
-│   Web Browser   │ <───────────────> │  Pillar Gateway │ <───────────────────> │  Homelab Node   │
+│   Web Browser   │ <───────────────> │  Pillar Gateway │ <───────────────────> │  Remote Node    │
 │   (xterm.js)    │     WebSockets    │ (Express + Node)│       TCP :22         │  (Linux / PVE)  │
 └─────────────────┘                   └─────────────────┘                       └─────────────────┘
 ```
@@ -21,7 +21,7 @@ Every connection request undergoes strict **ownership and sharing validation sco
 
 ## 📋 System Requirements
 
-To host Pillar inside your homelab, ensure your hosting environment matches these criteria:
+To host Pillar on your infrastructure, ensure your hosting environment matches these criteria:
 
 1. **Runtime Node.js**: Node.js v26.3.0 (Recommended LTS-current)
 2. **Database Engine**: SQLite (Prisma ORM automatically handles creation and migrations)

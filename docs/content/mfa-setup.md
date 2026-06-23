@@ -1,6 +1,6 @@
 # Two-Factor Authentication (MFA) Setup
 
-To guarantee the security of your homelab remote gateway, Pillar includes mandatory and optional **Multi-Factor Authentication (MFA)** backing.
+To guarantee the security of your remote gateway, Pillar includes mandatory and optional **Multi-Factor Authentication (MFA)** backing.
 
 ---
 

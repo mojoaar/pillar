@@ -1,6 +1,6 @@
 # Deploying Pillar on Proxmox VE with Nginx Proxy Manager
 
-This step-by-step guide walks you through deploying Pillar — the self-hosted, secure web-based remote-access gateway for homelabs — behind Nginx Proxy Manager on a Proxmox VE host. By the end, you'll have SSH and VNC remote bridges running inside a Debian 12 LXC container, served over HTTPS with automatic SSL certificate renewal.
+This step-by-step guide walks you through deploying Pillar — the self-hosted, secure web-based remote-access gateway — behind Nginx Proxy Manager on a Proxmox VE host. By the end, you'll have SSH and VNC remote bridges running inside a Debian 12 LXC container, served over HTTPS with automatic SSL certificate renewal.
 
 Two deployment options are provided:
 - **Option A: Nginx Proxy Manager + Native Node.js** — Bare-metal Node.js, no Docker overhead, direct process control via systemd.
@@ -14,7 +14,7 @@ Two deployment options are provided:
   Internet
      │
      ▼
-  Nginx Proxy Manager  (your existing homelab NPM — handles TLS + routing)
+  Nginx Proxy Manager  (your existing NPM — handles TLS + routing)
      │                    https://pillar.yourdomain.com
      ▼
   Proxmox LXC Container (Debian 12)  ──  /opt/pillar

@@ -231,7 +231,7 @@ export default function SystemsPage() {
         <div>
           <h1 className={styles.title}>Remote Systems</h1>
           <p className={styles.subtitle}>
-            Monitor operating systems, uptime, and pending updates across your homelab.
+            Monitor operating systems, uptime, and pending updates across your environment.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
