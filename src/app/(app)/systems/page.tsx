@@ -50,6 +50,7 @@ export default function SystemsPage() {
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [rebootingId, setRebootingId] = useState<string | null>(null);
+  const [checkingAll, setCheckingAll] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: 'install-updates' | 'reboot' } | null>(null);
   const [updateResults, setUpdateResults] = useState<Record<string, UpdateResult>>({});
   const [rebooting, setRebooting] = useState<RebootingState>(null);
@@ -138,10 +139,22 @@ export default function SystemsPage() {
         }));
       }
     } catch (err: any) {
-      setActionOutput(`Error: ${err.message}`);
+      setActionOutput(`Error checking ${id}: ${err.message}`);
     } finally {
       setCheckingId(null);
     }
+  };
+
+  const handleCheckAllUpdates = async () => {
+    setCheckingAll(true);
+    // Refresh system list first to catch any changes, then check updates on all online systems
+    await fetchSystems().catch(() => {});
+    for (const sys of systems) {
+      if (sys.status === 'online') {
+        await handleCheckUpdates(sys.id);
+      }
+    }
+    setCheckingAll(false);
   };
 
   const handleInstallUpdates = async (id: string) => {
@@ -208,10 +221,16 @@ export default function SystemsPage() {
             Monitor operating systems, uptime, and pending updates across your homelab.
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={fetchSystems} disabled={loading}>
-          <RefreshCw size={16} />
-          <span>Refresh</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={fetchSystems} disabled={loading}>
+            <RefreshCw size={16} />
+            <span>Refresh</span>
+          </button>
+          <button className="btn btn-primary" onClick={handleCheckAllUpdates} disabled={checkingAll || loading || systems.length === 0}>
+            {checkingAll ? <Loader2 size={16} className={styles.spin} /> : <Package size={16} />}
+            <span>{checkingAll ? 'Checking...' : 'Check Updates'}</span>
+          </button>
+        </div>
       </div>
 
       {error && (

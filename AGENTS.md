@@ -99,6 +99,16 @@ This project utilizes Next.js **CSS Modules** (`*.module.css`) for UI scoping an
 - **Next.js SSR env inlining**: Turbopack inlines `process.env` values at build time into SSR chunks. Use `env.DATABASE_URL` in `next.config.ts` to ensure it reaches SSR bundles. The `db.ts` adapter uses lazy Proxy init so the URL is resolved at first query, not module load time.
 - **`dotenv/config` required**: `import 'dotenv/config'` at the top of `db.ts` ensures `.env` is loaded before the adapter is created, covering both the Express server and Next.js SSR paths.
 
+### Gotcha #stale-build-cache: Always clean `.next` and `dist` before production builds
+- Next.js/Turbopack caches SSR chunks from previous builds. These chunks can hold stale `DATABASE_URL` values (e.g., `file:./prisma/dev.db` instead of the production path).
+- Always run `rm -rf .next dist` before `npm run build` in deployment scripts.
+- Failure to do so causes "TableDoesNotExist" errors in production because the cached SSR bundle points to an empty/nonexistent database.
+
+### Gotcha #no-session-provider: App uses server-side `auth()`, NOT `SessionProvider` / `useSession()`
+- The root layout does NOT include a `<SessionProvider>`. Authentication is handled server-side via `auth()` from `@/lib/auth` in server components.
+- Client components receive user data as props passed down from layouts (e.g., `Sidebar user={user}`).
+- NEVER call `useSession()` from `next-auth/react` in any page or component — it will return `null` and crash with "Cannot destructure property 'data' from null".
+
 ---
 
 ## 📖 Docs Sync Rule
