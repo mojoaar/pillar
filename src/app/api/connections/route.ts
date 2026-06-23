@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
           { sharedWith: { some: { userId: session.user.id } } }
         ]
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
 
     // Safely serialize connections, stripping any sensitive encrypted fields before returning to client (BOLA precaution)

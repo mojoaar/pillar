@@ -18,7 +18,7 @@ export default async function ConnectionsCatalogPage() {
         { sharedWith: { some: { userId: session.user.id } } }
       ]
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { name: 'asc' }
   });
 
   // 3. Fetch registered users (excluding current active user) for Sharing selection box
