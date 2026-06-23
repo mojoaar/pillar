@@ -143,6 +143,12 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
 
       setSuccess('Profile settings updated successfully!');
       setAvatarFile(null);
+
+      // Reload to propagate avatar change to the sidebar (which reads from server props)
+      if (avatarFile) {
+        window.location.reload();
+        return;
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
     } finally {

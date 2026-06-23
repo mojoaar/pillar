@@ -8,6 +8,7 @@ import { decrypt } from './src/lib/crypto';
 import { connectSSH } from './src/lib/ssh';
 import { writeAudit } from './src/lib/audit';
 import net from 'net';
+import path from 'path';
 // Gotcha #url-parse: Next.js's getRequestHandler expects NextUrlWithParsedQuery from url.parse().
 // All WebSocket handlers use our WHATWG parseUrl() helper instead. Suppress the deprecation warning.
 import { parse } from 'url';
@@ -134,6 +135,13 @@ app.prepare().then(() => {
     }
     next();
   });
+
+  // Serve uploaded files (avatars) directly from the local filesystem
+  const uploadsPath = path.join(process.cwd(), 'public', 'uploads');
+  expressApp.use('/uploads', express.static(uploadsPath, {
+    maxAge: '7d',
+    immutable: true,
+  }));
 
   // ==========================================
   // REGISTER RATE LIMITS (Finding #1)
