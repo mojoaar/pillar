@@ -53,8 +53,8 @@ export default function TerminalWindow({ connectionId }: TerminalWindowProps) {
 
     // 1. Read custom scrollback lines from browser preferences (Finding #scrollback)
     const savedScrollback = typeof window !== 'undefined' 
-      ? parseInt(localStorage.getItem('pillar-scrollback') || '1000', 10) 
-      : 1000;
+      ? parseInt(localStorage.getItem('pillar-scrollback') || '10000', 10) 
+      : 10000;
 
     // Read computed CSS variables dynamically from Root node
     const styles = getComputedStyle(document.documentElement);

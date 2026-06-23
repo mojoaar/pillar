@@ -47,7 +47,7 @@ export default function SettingsTabs({ user: initialUser }: SettingsTabsProps) {
   const [dateFormat, setDateFormat] = useState<DateFormatPreference>('EU');
   const [timezone, setTimezone] = useState(getDefaultTimezone());
   const [timezones, setTimezones] = useState<string[]>(['UTC']);
-  const [scrollback, setScrollback] = useState(1000); // Terminal scrollback history lines (Finding #scrollback)
+  const [scrollback, setScrollback] = useState(10000); // Terminal scrollback history lines (Finding #scrollback)
   const [terminalFontSize, setTerminalFontSize] = useState(14);
 
   const [loading, setLoading] = useState(false);
